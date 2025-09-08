@@ -27,6 +27,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/schools/{school}/students', [App\Http\Controllers\SchoolController::class, 'students'])->name('schools.students');
     Route::get('/schools/{school}/classes', [App\Http\Controllers\SchoolController::class, 'classes'])->name('schools.classes');
     
+    // Rotas das turmas
+    Route::get('/classes/{classCode}', [App\Http\Controllers\ClassController::class, 'show'])->name('classes.show');
+    
+    // Rotas dos alunos
+    Route::get('/students/{studentRa}', [App\Http\Controllers\StudentController::class, 'show'])->name('students.show');
+    
     // Rotas da API SED
     Route::get('/sed-api/test-connection', [App\Http\Controllers\SchoolController::class, 'testConnection'])->name('sed-api.test-connection');
     Route::get('/sed-api/classes', [App\Http\Controllers\SchoolController::class, 'getClasses'])->name('sed-api.classes');
@@ -43,6 +49,12 @@ require __DIR__.'/auth.php';
 // SED API Routes (Test route without auth)
 Route::prefix('sed-api')->name('sed-api.')->group(function () {
     Route::get('/test-connection', [SedApiController::class, 'testConnection'])->name('test-connection');
+    Route::post('/consultar-turma', [SedApiController::class, 'consultarTurma'])->name('consultar-turma');
+});
+
+// SED API Routes (Authenticated)
+Route::middleware(['auth', 'verified'])->prefix('sed-api')->name('sed-api.')->group(function () {
+    Route::post('/consultar-turma', [SedApiController::class, 'consultarTurma'])->name('consultar-turma-auth');
 });
 
 // SED API Routes (Protected routes)

@@ -259,11 +259,11 @@ class SedApiService
      * @return array
      * @throws SedApiException
      */
-    private function makeRequest(string $method, string $endpoint, array $data = []): array
+    private function makeRequest(string $method, string $endpoint, array $data = [])
     {
         $token = $this->getToken();
         $url = $this->baseUrl . '/' . ltrim($endpoint, '/');
-        
+       
         try {
             Log::debug('SED API: Making request', [
                 'method' => $method,
@@ -285,6 +285,8 @@ class SedApiService
                 'DELETE' => $request->delete($url),
                 default => throw new SedApiException('Unsupported HTTP method: ' . $method)
             };
+
+            return $response->json();
 
             if (!$response->successful()) {
                 // If unauthorized, clear token cache and retry once
@@ -311,6 +313,22 @@ class SedApiService
             }
 
             $responseData = $response->json();
+            
+            // Verificar erros de negócio da API SED
+            if (!empty($responseData['Erro']) || !empty($responseData['outErro'])) {
+                $errorMessage = $responseData['Mensagem'] ?? $responseData['outErro'] ?? 'Erro desconhecido da API';
+                $errorId = $responseData['Erro'] ?? 'N/A';
+                
+                Log::error('SED API: Business error', [
+                    'method' => $method,
+                    'url' => $url,
+                    'error_id' => $errorId,
+                    'error_message' => $errorMessage,
+                    'process_id' => $responseData['outProcessoID'] ?? null
+                ]);
+                
+                throw SedApiException::businessError($errorMessage);
+            }
             
             Log::debug('SED API: Request successful', [
                 'method' => $method,
@@ -736,6 +754,177 @@ class SedApiService
                 'endpoint' => '/DadosBasicos/EscolasPorMunicipio'
             ]);
             throw SedApiException::unexpectedError('Erro inesperado ao buscar escolas: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Consultar informações de uma turma específica
+     * 
+     * @param string $inNumClasse Número da classe/turma
+     * @return array
+     * @throws SedApiException
+     */
+    public function consultarTurma(string $inNumClasse): array | string
+    {
+        try {
+            // Validar parâmetro obrigatório
+            if (empty($inNumClasse)) {
+                throw SedApiException::invalidParameter('Número da classe é obrigatório');
+            }
+            
+            // Obter token de autenticação
+            $token = $this->getToken();
+                
+            // Preparar dados da requisição
+            $requestData = [
+                'inNumClasse' => $inNumClasse
+            ];
+            
+            // Fazer requisição POST para a API
+            $response = Http::timeout(config('sed.api.timeout', 30))
+                ->withHeaders([
+                    'Authorization' => 'Bearer ' . $token,
+                    'Content-Type' => 'application/json; charset=UTF-8'
+                ])
+                ->post($this->baseUrl . '/RelacaoAlunosClasse/FormacaoClasse', $requestData);
+            
+            if (!$response->successful()) {
+                throw SedApiException::requestFailed(
+                    'Falha na requisição de consulta de turma',
+                    $response->status(),
+                    $response->body()
+                );
+            }
+            
+            $data = $response->json();
+            
+            // Verificar se há erro de negócio
+            if (!empty($data['outErro'])) {
+                throw SedApiException::businessError($data['outErro']);
+            }
+            
+            // Log da requisição bem-sucedida
+            Log::info('SED API: Turma consultada com sucesso', [
+                'classe' => $inNumClasse,
+                'escola' => $data['outCodEscola'] ?? null,
+                'ano_letivo' => $data['outAnoLetivo'] ?? null,
+                'processo_id' => $data['outProcessoID'] ?? null
+            ]);
+            
+            return $data;
+            
+        } catch (SedApiException $e) {
+            Log::error('SED API: Erro ao consultar turma', [
+                'error' => $e->getMessage(),
+                'classe' => $inNumClasse,
+                'endpoint' => '/RelacaoAlunosClasse/FormacaoClasse'
+            ]);
+            throw $e;
+        } catch (\Exception $e) {
+            Log::error('SED API: Erro inesperado ao consultar turma', [
+                'error' => $e->getMessage(),
+                'classe' => $inNumClasse,
+                'endpoint' => '/RelacaoAlunosClasse/FormacaoClasse'
+            ]);
+            throw SedApiException::unexpectedError('Erro inesperado ao consultar turma: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Busca a ficha completa de um aluno pelo RA
+     *
+     * @param array $raData Dados do RA contendo inNumRA, inDigitoRA e inSiglaUFRA
+     * @return array Dados da ficha do aluno
+     * @throws SedApiException
+     */
+    public function getStudentProfile(array $raData)
+    {
+        try {
+            // Validar parâmetros obrigatórios
+            if (empty($raData['inNumRA'])) {
+                throw SedApiException::invalidParameter('Número do RA é obrigatório');
+            }
+            
+            if (empty($raData['inSiglaUFRA'])) {
+                throw SedApiException::invalidParameter('Sigla UF do RA é obrigatória');
+            }
+
+            // Obter token de autenticação
+            $token = $this->getToken();
+
+            // Preparar parâmetros como query parameters simples
+            $queryParams = [
+                'inNumRA' => $raData['inNumRA'],
+                'inSiglaUFRA' => $raData['inSiglaUFRA'],
+            ];
+            
+            // Adicionar dígito do RA apenas se não estiver vazio
+            if (!empty($raData['inDigitoRA'])) {
+                $queryParams['inDigitoRA'] = $raData['inDigitoRA'];
+            }     
+
+            Log::info('SED API: Buscando ficha do aluno', [
+                'ra' => $raData['inNumRA'],
+                'digito' => $raData['inDigitoRA'] ?? 'não informado',
+                'uf' => $raData['inSiglaUFRA'],
+                'endpoint' => '/Aluno/ExibirFichaAluno',
+                'query_params' => $queryParams
+            ]);
+
+             // Fazer requisição POST para a API
+             $response = Http::timeout(config('sed.api.timeout', 30))
+                 ->withHeaders([
+                     'Authorization' => 'Bearer ' . $token,
+                     'Content-Type' => 'application/json; charset=UTF-8'
+                 ])
+                 ->post($this->baseUrl . '/Aluno/ExibirFichaAluno', [
+                     'inAluno' => $queryParams
+                 ]);
+                // ->get($this->baseUrl . '/Aluno/ExibirFichaAluno', [
+                //     $queryParams
+                // ]);
+
+            return $response->json();
+
+            if (!$response->successful()) {
+                throw SedApiException::requestFailed(
+                    'Falha na requisição de ficha do aluno',
+                    $response->status(),
+                    $response->body()
+                );
+            }
+            
+            $data = $response->json();
+            
+            // Verificar se há erro de negócio
+            if (!empty($data['outErro'])) {
+                throw SedApiException::businessError($data['outErro']);
+            }
+            
+            // Log da requisição bem-sucedida
+            Log::info('SED API: Ficha do aluno obtida com sucesso', [
+                'ra' => $raData['inNumRA'],
+                'digito' => $raData['inDigitoRA'] ?? 'não informado',
+                'uf' => $raData['inSiglaUFRA'],
+                'processo_id' => $data['outProcessoID'] ?? null
+            ]);
+            
+            return $data;
+            
+        } catch (SedApiException $e) {
+            Log::error('SED API: Erro ao buscar ficha do aluno', [
+                'error' => $e->getMessage(),
+                'ra' => $raData['inNumRA'] ?? 'não informado',
+                'endpoint' => '/Aluno/ExibirFichaAluno'
+            ]);
+            throw $e;
+        } catch (\Exception $e) {
+            Log::error('SED API: Erro inesperado ao buscar ficha do aluno', [
+                'error' => $e->getMessage(),
+                'ra' => $raData['inNumRA'] ?? 'não informado',
+                'endpoint' => '/Aluno/ExibirFichaAluno'
+            ]);
+            throw SedApiException::unexpectedError('Erro inesperado ao buscar ficha do aluno: ' . $e->getMessage());
         }
     }
 }

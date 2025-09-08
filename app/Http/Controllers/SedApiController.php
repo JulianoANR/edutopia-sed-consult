@@ -241,4 +241,55 @@ class SedApiController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Consultar informações de uma turma específica
+     * 
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function consultarTurma(Request $request): JsonResponse
+    {
+        try {
+            // Validar parâmetro obrigatório
+            $request->validate([
+                'inNumClasse' => 'required|string|max:50'
+            ]);
+            
+            $inNumClasse = $request->input('inNumClasse');
+            
+            // Chamar o serviço
+            $result = $this->sedApiService->consultarTurma($inNumClasse);
+
+            return response()->json([
+                'success' => true,
+                'data' => $result,
+                'message' => 'Turma consultada com sucesso',
+            ]);
+            
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Dados de entrada inválidos',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (SedApiException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao consultar turma na API SED',
+                'error' => $e->getMessage(),
+            ], $e->getHttpStatusCode());
+        } catch (\Exception $e) {
+            Log::error('Unexpected error while consulting class', [
+                'error' => $e->getMessage(),
+                'inNumClasse' => $request->input('inNumClasse'),
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro interno do servidor',
+                'error' => 'Erro inesperado ao consultar turma',
+            ], 500);
+        }
+    }
 }

@@ -29,12 +29,31 @@ class SchoolController extends Controller
             // Testa a conexão primeiro
             $connectionStatus = $this->getConnectionStatus();
             
-            // Se a conexão falhar, retorna com erro
+            // Se a conexão falhar, retorna com dados de teste
             if (!$connectionStatus['success']) {
+                $testSchools = [
+                    [
+                        'outCodEscola' => '123456',
+                        'outDescNomeEscola' => 'Escola Estadual Teste 1',
+                        'outDescEndereco' => 'Rua das Flores, 123',
+                        'outDescBairro' => 'Centro',
+                        'outDescCidade' => 'São Paulo',
+                        'outDescUF' => 'SP'
+                    ],
+                    [
+                        'outCodEscola' => '789012',
+                        'outDescNomeEscola' => 'Escola Estadual Teste 2',
+                        'outDescEndereco' => 'Av. Principal, 456',
+                        'outDescBairro' => 'Vila Nova',
+                        'outDescCidade' => 'São Paulo',
+                        'outDescUF' => 'SP'
+                    ]
+                ];
+                
                 return Inertia::render('Schools/Index', [
-                    'schools' => [],
+                    'schools' => $testSchools,
                     'selectedSchool' => Session::get('selected_school'),
-                    'connectionStatus' => $connectionStatus
+                    'connectionStatus' => array_merge($connectionStatus, ['message' => 'Usando dados de teste - API SED indisponível'])
                 ]);
             }
             

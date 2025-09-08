@@ -37,7 +37,7 @@ export default function SchoolShow({ school, selectedSchool }) {
             
             if (response.data.success && response.data.data.outClasses) {
                 const formattedClasses = response.data.data.outClasses.map((classItem, index) => ({
-                    id: `${classItem.outNumClasse}-${index}`,
+                    id: classItem.outNumClasse,
                     name: `${classItem.outCodSerieAno}º ${classItem.outTurma}`,
                     grade: `${classItem.outCodSerieAno}º Ano`,
                     shift: classItem.outDescricaoTurno,
@@ -172,44 +172,61 @@ export default function SchoolShow({ school, selectedSchool }) {
                 </div>
                 
                 {school?.outUnidades && school.outUnidades.length > 0 && (
-                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                        <h4 className="text-lg font-medium text-gray-900 mb-4">🏢 Unidades da Escola</h4>
-                        <div className="space-y-4">
+                    <div>
+                        <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                            <span className="text-2xl mr-2">🏢</span>
+                            Unidades da Escola
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {school.outUnidades.map((unidade, index) => {
-                                // Extrair informações do endereço da unidade
                                 const enderecoCompleto = unidade.outDescNomeUnidade || '';
                                 const partes = enderecoCompleto.split(', ');
                                 
                                 return (
-                                    <div key={unidade.outCodUnidade || index} className="border border-gray-100 rounded-lg p-4 bg-gray-50">
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                                            <div className="flex justify-between">
-                                                <span className="text-gray-500">Código da Unidade:</span>
-                                                <span className="font-medium">{unidade.outCodUnidade}</span>
+                                    <div key={unidade.outCodUnidade || index} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow duration-200">
+                                        <div className="flex items-start mb-3">
+                                            <div className="bg-blue-100 rounded-full p-2 mr-3">
+                                                <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                                </svg>
                                             </div>
-                                            <div className="flex flex-col space-y-1">
-                                                <span className="text-gray-500">Endereço Completo:</span>
-                                                <span className="font-medium text-wrap">{enderecoCompleto}</span>
+                                            <div className="flex-1">
+                                                <h5 className="font-medium text-gray-900 text-sm mb-1">
+                                                    Unidade {unidade.outCodUnidade}
+                                                </h5>
+                                                <p className="text-xs text-gray-500 leading-relaxed">
+                                                    {enderecoCompleto}
+                                                </p>
                                             </div>
-                                            {partes.length >= 4 && (
-                                                <>
-                                                    <div className="flex justify-between">
-                                                        <span className="text-gray-500">Logradouro:</span>
-                                                        <span className="font-medium">{partes[0]} {partes[1]} {partes[2]}</span>
+                                        </div>
+                                        
+                                        {partes.length >= 4 && (
+                                            <div className="border-t border-gray-100 pt-3 mt-3">
+                                                <div className="grid grid-cols-1 gap-2 text-xs">
+                                                    <div className="flex items-center text-gray-600">
+                                                        <svg className="w-3 h-3 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                        </svg>
+                                                        <span className="truncate">{partes[0]} {partes[1]} {partes[2]}</span>
                                                     </div>
-                                                    <div className="flex justify-between">
-                                                        <span className="text-gray-500">CEP:</span>
-                                                        <span className="font-medium">{partes[3]}</span>
+                                                    <div className="flex items-center text-gray-600">
+                                                        <svg className="w-3 h-3 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                                        </svg>
+                                                        <span>CEP: {partes[3]}</span>
                                                     </div>
                                                     {partes[4] && (
-                                                        <div className="flex justify-between">
-                                                            <span className="text-gray-500">Bairro:</span>
-                                                            <span className="font-medium">{partes[4]}</span>
+                                                        <div className="flex items-center text-gray-600">
+                                                            <svg className="w-3 h-3 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                                            </svg>
+                                                            <span>{partes[4]}</span>
                                                         </div>
                                                     )}
-                                                </>
-                                            )}
-                                        </div>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 );
                             })}
@@ -348,6 +365,19 @@ export default function SchoolShow({ school, selectedSchool }) {
                                         </div>
                                     </div>
                                 )}
+                                
+                                <div className="mt-4 pt-4 border-t border-gray-200">
+                                    <Link
+                                        href={route('classes.show', classItem.id)}
+                                        className="inline-flex items-center justify-center w-full px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700 focus:bg-indigo-700 active:bg-indigo-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150"
+                                    >
+                                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg>
+                                        Ver Detalhes
+                                    </Link>
+                                </div>
                             </div>
                         ))}
                     </div>
