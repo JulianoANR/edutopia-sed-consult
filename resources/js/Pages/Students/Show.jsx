@@ -252,8 +252,8 @@ export default function StudentShow({ studentRa, studentData: initialStudentData
         }
 
         const docs = studentData.outDocumentos;
-        const certNova = studentData.outCertidaoNova;
-        const certAntiga = studentData.outCertidaoAntiga;
+        const certNova = studentData.outCertidaoNova && studentData.outCertidaoNova.length > 0 ? studentData.outCertidaoNova[0] : null;
+        const certAntiga = studentData.outCertidaoAntiga && studentData.outCertidaoAntiga.length > 0 ? studentData.outCertidaoAntiga[0] : null;
 
         return (
             <div className="space-y-6">
@@ -320,10 +320,10 @@ export default function StudentShow({ studentRa, studentData: initialStudentData
                 {certNova && (
                     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                         <h4 className="text-lg font-medium text-gray-900 mb-4">📜 Certidão Nova (Matrícula)</h4>
-                        <div className="grid grid-cols-3 gap-4 text-sm">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                             {Object.entries(certNova).map(([key, value]) => {
-                                if (value) {
-                                    const fieldName = key.replace('outCertMatr', 'Campo ');
+                                if (value && key.startsWith('out')) {
+                                    const fieldName = key.replace('out', '').replace(/([A-Z])/g, ' $1').trim();
                                     return (
                                         <div key={key} className="flex justify-between">
                                             <span className="text-gray-500">{fieldName}:</span>
@@ -337,7 +337,7 @@ export default function StudentShow({ studentRa, studentData: initialStudentData
                     </div>
                 )}
                 
-                {certAntiga && Object.values(certAntiga).some(v => v) && (
+                {certAntiga && (
                     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                         <h4 className="text-lg font-medium text-gray-900 mb-4">📜 Certidão Antiga</h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
@@ -490,9 +490,9 @@ export default function StudentShow({ studentRa, studentData: initialStudentData
     };
 
     const renderFamily = () => {
-        const irmaos = studentData?.outIrmaos;
+        const dadosPessoais = studentData?.outDadosPessoais;
 
-        if (!irmaos || irmaos.length === 0) {
+        if (!dadosPessoais) {
             return (
                 <div className="text-center py-8">
                     <div className="text-gray-400 text-4xl mb-2">👨‍👩‍👧‍👦</div>
@@ -504,36 +504,30 @@ export default function StudentShow({ studentRa, studentData: initialStudentData
         return (
             <div className="space-y-6">
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                    <h4 className="text-lg font-medium text-gray-900 mb-4">👨‍👩‍👧‍👦 Irmãos</h4>
-                    <div className="space-y-4">
-                        {irmaos.map((irmao, index) => (
-                            <div key={index} className="border-l-4 border-green-500 pl-4">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-500">Nome:</span>
-                                        <span className="font-medium">{irmao.outNomeAluno || 'N/A'}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-500">Data de Nascimento:</span>
-                                        <span className="font-medium">{irmao.outDataNascimento || 'N/A'}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-500">RA:</span>
-                                        <span className="font-medium">
-                                            {irmao.outNumRA}{irmao.outDigitoRA ? `-${irmao.outDigitoRA}` : ''}
-                                        </span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-500">UF do RA:</span>
-                                        <span className="font-medium">{irmao.outSiglaUFRA || 'N/A'}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-500">Gêmeo:</span>
-                                        <span className="font-medium">{irmao.outGemeo || 'N/A'}</span>
-                                    </div>
-                                </div>
+                    <h4 className="text-lg font-medium text-gray-900 mb-4">👨‍👩‍👧‍👦 Informações Familiares</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-3 text-sm">
+                            <div className="flex flex-col space-y-1">
+                                <span className="text-gray-500">Nome da Mãe:</span>
+                                <span className="font-medium">{dadosPessoais.outNomeMae || 'N/A'}</span>
                             </div>
-                        ))}
+                            <div className="flex flex-col space-y-1">
+                                <span className="text-gray-500">Nome do Pai:</span>
+                                <span className="font-medium">{dadosPessoais.outNomePai || 'N/A'}</span>
+                            </div>
+                            {dadosPessoais.outFiliacao3 && (
+                                <div className="flex flex-col space-y-1">
+                                    <span className="text-gray-500">Terceira Filiação:</span>
+                                    <span className="font-medium">{dadosPessoais.outFiliacao3}</span>
+                                </div>
+                            )}
+                        </div>
+                        <div className="space-y-3 text-sm">
+                            <div className="flex justify-between">
+                                <span className="text-gray-500">Gêmeo:</span>
+                                <span className="font-medium">{dadosPessoais.outGemeo || 'N/A'}</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -542,10 +536,9 @@ export default function StudentShow({ studentRa, studentData: initialStudentData
 
     const renderSpecialNeeds = () => {
         const deficiencia = studentData?.outDeficiencia;
-        const necessidades = studentData?.outListaNecessidadesEspeciais;
         const recursos = studentData?.outRecursoAvaliacao;
 
-        if (!deficiencia && (!necessidades || necessidades.length === 0) && !recursos) {
+        if (!deficiencia && !recursos) {
             return (
                 <div className="text-center py-8">
                     <div className="text-gray-400 text-4xl mb-2">♿</div>
@@ -628,21 +621,7 @@ export default function StudentShow({ studentRa, studentData: initialStudentData
                     </div>
                 )}
                 
-                {necessidades && necessidades.length > 0 && (
-                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                        <h4 className="text-lg font-medium text-gray-900 mb-4">📋 Necessidades Especiais</h4>
-                        <div className="space-y-3">
-                            {necessidades.map((necessidade, index) => (
-                                <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                                    <span className="text-gray-700">{necessidade.outNomeNecesEspecial || 'N/A'}</span>
-                                    <span className="text-xs text-gray-500 bg-white px-2 py-1 rounded">
-                                        Código: {necessidade.outCodNecesEspecial || 'N/A'}
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
+
                 
                 {recursos && (
                     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -706,7 +685,7 @@ export default function StudentShow({ studentRa, studentData: initialStudentData
 
 
     const renderAdditionalData = () => {
-        if (!studentData?.outDadosPessoais) {
+        if (!studentData) {
             return (
                 <div className="text-center py-8">
                     <div className="text-gray-400 text-4xl mb-2">📋</div>
@@ -725,11 +704,11 @@ export default function StudentShow({ studentRa, studentData: initialStudentData
                         <div className="space-y-3 text-sm">
                             <div className="flex justify-between">
                                 <span className="text-gray-500">Bolsa Família:</span>
-                                <span className="font-medium">{data.outBolsaFamilia || 'N/A'}</span>
+                                <span className="font-medium">{data?.outBolsaFamilia || 'N/A'}</span>
                             </div>
                             <div className="flex justify-between">
                                 <span className="text-gray-500">Quilombola:</span>
-                                <span className="font-medium">{data.outQuilombola || 'N/A'}</span>
+                                <span className="font-medium">{data?.outQuilombola || 'N/A'}</span>
                             </div>
                         </div>
                     </div>
@@ -739,24 +718,71 @@ export default function StudentShow({ studentRa, studentData: initialStudentData
                         <div className="space-y-3 text-sm">
                             <div className="flex justify-between">
                                 <span className="text-gray-500">Possui Internet:</span>
-                                <span className="font-medium">{data.outPossuiInternet || 'N/A'}</span>
+                                <span className="font-medium">{data?.outPossuiInternet || 'N/A'}</span>
                             </div>
                             <div className="flex justify-between">
                                 <span className="text-gray-500">Possui Dispositivos:</span>
-                                <span className="font-medium">{data.outPossuiNotebookSmartphoneTablet || 'N/A'}</span>
+                                <span className="font-medium">{data?.outPossuiNotebookSmartphoneTablet || 'N/A'}</span>
                             </div>
                         </div>
                     </div>
                 </div>
                 
-                {studentData?.outIndigena && Object.values(studentData.outIndigena).some(v => v) && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                        <h4 className="text-lg font-medium text-gray-900 mb-4">🔧 Informações do Sistema</h4>
+                        <div className="space-y-3 text-sm">
+                            <div className="flex justify-between">
+                                <span className="text-gray-500">Operador:</span>
+                                <span className="font-medium">{studentData.outOperador || 'N/A'}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-gray-500">Processo ID:</span>
+                                <span className="font-medium">{studentData.outProcessoID || 'N/A'}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-gray-500">Data Alteração Ficha:</span>
+                                <span className="font-medium">{studentData.outDataAlteracaoFicha || 'N/A'}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-gray-500">Status:</span>
+                                <span className={`font-medium ${
+                                    studentData.outSucesso === 'OK' ? 'text-green-600' : 'text-red-600'
+                                }`}>
+                                    {studentData.outSucesso || 'N/A'}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {studentData.outJustificativaDocumentos && (
+                        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                            <h4 className="text-lg font-medium text-gray-900 mb-4">📝 Justificativa de Documentos</h4>
+                            <p className="text-sm text-gray-700">{studentData.outJustificativaDocumentos}</p>
+                        </div>
+                    )}
+                </div>
+                
+                {studentData?.outIndigena && studentData.outIndigena.length > 0 && (
                     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                         <h4 className="text-lg font-medium text-gray-900 mb-4">🏹 Informações Indígenas</h4>
                         <div className="space-y-3 text-sm">
-                            <div className="flex justify-between">
-                                <span className="text-gray-500">Tipo Indígena:</span>
-                                <span className="font-medium">{studentData.outIndigena.outDescricaoTipoIndigena || 'N/A'}</span>
-                            </div>
+                            {studentData.outIndigena.map((indigena, index) => (
+                                <div key={index} className="border-l-4 border-orange-500 pl-4">
+                                    {Object.entries(indigena).map(([key, value]) => {
+                                        if (value && key.startsWith('out')) {
+                                            const fieldName = key.replace('out', '').replace(/([A-Z])/g, ' $1').trim();
+                                            return (
+                                                <div key={key} className="flex justify-between mb-2">
+                                                    <span className="text-gray-500">{fieldName}:</span>
+                                                    <span className="font-medium">{value}</span>
+                                                </div>
+                                            );
+                                        }
+                                        return null;
+                                    })}
+                                </div>
+                            ))}
                         </div>
                     </div>
                 )}

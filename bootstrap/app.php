@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Exceções CSRF para rotas da API SED
         $middleware->validateCsrfTokens(except: [
             'sed-api/*',
+            'classes/export-excel',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

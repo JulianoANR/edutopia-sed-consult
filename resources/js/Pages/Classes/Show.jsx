@@ -10,6 +10,7 @@ export default function ClassShow({ classCode, selectedSchool }) {
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [exportLoading, setExportLoading] = useState(false);
     // Ano letivo é fixo para a turma específica
 
     const tabs = [
@@ -106,6 +107,48 @@ export default function ClassShow({ classCode, selectedSchool }) {
         if (!classData) {
             await loadClassData();
         }
+    };
+
+    const handleExportExcel = async () => {
+        if (!students || students.length === 0) {
+            alert('Não há alunos para exportar.');
+            return;
+        }
+
+        setExportLoading(true);
+        try {
+            // Criar FormData para enviar os dados
+            const formData = new FormData();
+            formData.append('classCode', classCode);
+            
+            // Adicionar cada aluno como array
+            students.forEach((student, index) => {
+                formData.append(`students[${index}][ra]`, student.ra);
+                formData.append(`students[${index}][name]`, student.name);
+            });
+            
+            // Criar um link para download do arquivo CSV
+            const response = await axios.post('/classes/export-excel', formData, {
+                responseType: 'blob',
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
+            });
+
+            // Criar URL do blob e fazer download
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `alunos_turma_${classCode}_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Erro ao exportar CSV:', error);
+            alert('Erro ao exportar arquivo CSV. Tente novamente.');
+        }
+        setExportLoading(false);
     };
 
     useEffect(() => {
@@ -325,9 +368,28 @@ export default function ClassShow({ classCode, selectedSchool }) {
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-lg font-medium text-gray-900">Lista de Alunos</h3>
-                        <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
-                            {filteredStudents.length} de {students.length} aluno{students.length !== 1 ? 's' : ''}
-                        </span>
+                        <div className="flex items-center space-x-3">
+                            <button
+                                onClick={handleExportExcel}
+                                disabled={!students || students.length === 0 || loading || exportLoading}
+                                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                            >
+                                {exportLoading ? (
+                                    <svg className="-ml-1 mr-2 h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                ) : (
+                                    <svg className="-ml-1 mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                )}
+                                {exportLoading ? 'Exportando...' : 'Exportar CSV'}
+                            </button>
+                            <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                                {filteredStudents.length} de {students.length} aluno{students.length !== 1 ? 's' : ''}
+                            </span>
+                        </div>
                     </div>
                     
                     {/* Barra de Pesquisa */}
@@ -373,15 +435,15 @@ export default function ClassShow({ classCode, selectedSchool }) {
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         RA
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Data Nascimento
-                                    </th>
+                                    </th> */}
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Status
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Matrícula
-                                    </th>
+                                    </th> */}
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Ações
                                     </th>
@@ -399,17 +461,17 @@ export default function ClassShow({ classCode, selectedSchool }) {
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                             {student.ra}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                             {student.birthDate || 'N/A'}
-                                        </td>
+                                        </td> */}
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
                                                 {student.status || 'Ativo'}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                             {student.enrollmentStart ? `${student.enrollmentStart} - ${student.enrollmentEnd || 'Atual'}` : 'N/A'}
-                                        </td>
+                                        </td> */}
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                             <Link
                                                 href={route('students.show', student.ra)}

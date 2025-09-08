@@ -29,6 +29,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     
     // Rotas das turmas
     Route::get('/classes/{classCode}', [App\Http\Controllers\ClassController::class, 'show'])->name('classes.show');
+    Route::post('/classes/export-excel', [App\Http\Controllers\ClassController::class, 'exportExcel'])->name('classes.export-excel');
     
     // Rotas dos alunos
     Route::get('/students/{studentRa}', [App\Http\Controllers\StudentController::class, 'show'])->name('students.show');
@@ -37,6 +38,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/sed-api/test-connection', [App\Http\Controllers\SchoolController::class, 'testConnection'])->name('sed-api.test-connection');
     Route::get('/sed-api/classes', [App\Http\Controllers\SchoolController::class, 'getClasses'])->name('sed-api.classes');
 });
+
+
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
