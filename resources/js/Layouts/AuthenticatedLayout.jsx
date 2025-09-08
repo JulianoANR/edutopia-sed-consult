@@ -28,7 +28,7 @@ export default function AuthenticatedLayout({ header, children }) {
                                     href={route('dashboard')}
                                     active={route().current('dashboard')}
                                 >
-                                    Dashboard
+                                    Escolas
                                 </NavLink>
                             </div>
                         </div>
@@ -61,17 +61,17 @@ export default function AuthenticatedLayout({ header, children }) {
                                     </Dropdown.Trigger>
 
                                     <Dropdown.Content>
-                                        <Dropdown.Link
+                                        {/* <Dropdown.Link
                                             href={route('profile.edit')}
                                         >
                                             Profile
-                                        </Dropdown.Link>
+                                        </Dropdown.Link> */}
                                         <Dropdown.Link
                                             href={route('logout')}
                                             method="post"
                                             as="button"
                                         >
-                                            Log Out
+                                            Sair
                                         </Dropdown.Link>
                                     </Dropdown.Content>
                                 </Dropdown>

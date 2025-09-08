@@ -144,14 +144,14 @@ export default function Login({ status, canResetPassword }) {
                                         </span>
                                     </label>
                                     
-                                    {canResetPassword && (
+                                    {/* {canResetPassword && (
                                         <Link
                                             href={route('password.request')}
                                             className="text-sm text-indigo-600 hover:text-indigo-500 font-medium"
                                         >
                                             Esqueceu a senha?
                                         </Link>
-                                    )}
+                                    )} */}
                                 </div>
 
                                 <PrimaryButton 
