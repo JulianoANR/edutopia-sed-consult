@@ -15,6 +15,7 @@ export default function SchoolShow({ school, selectedSchool }) {
     const [exportLoading, setExportLoading] = useState(false);
     const [exportProgress, setExportProgress] = useState({ current: 0, total: 0, message: '' });
     const [showProgressModal, setShowProgressModal] = useState(false);
+    const [failedClasses, setFailedClasses] = useState([]);
 
     const tabs = [
         { id: 'school-data', name: 'Dados da Escola', icon: '📋' },
@@ -30,6 +31,7 @@ export default function SchoolShow({ school, selectedSchool }) {
 
         setExportLoading(true);
         setShowProgressModal(true);
+        setFailedClasses([]);
         setExportProgress({ current: 0, total: 0, message: 'Iniciando exportação...' });
         
         try {
@@ -58,6 +60,7 @@ export default function SchoolShow({ school, selectedSchool }) {
             // Etapa 2: Buscar alunos de cada turma
             let allStudentsData = [];
             let allAdditionalData = [];
+            const failed = [];
 
             for (let i = 0; i < schoolClasses.length; i++) {
                 const classItem = schoolClasses[i];
@@ -85,9 +88,20 @@ export default function SchoolShow({ school, selectedSchool }) {
                     }
                 } catch (classError) {
                     console.error(`Erro ao processar turma ${classItem.nome_turma}:`, classError);
-                    // Continuar com as próximas turmas mesmo se uma falhar
+                    
+                    // Adiciona turma que falhou à lista em tempo real
+                    const failedClass = {
+                        ...classItem,
+                        error: classError.response?.data?.message || classError.message || 'Timeout ou erro desconhecido'
+                    };
+                    failed.push(failedClass);
+                    
+                    // Atualiza a lista de turmas que falharam imediatamente
+                    setFailedClasses(prev => [...prev, failedClass]);
                 }
             }
+
+            // Lista de turmas que falharam já foi atualizada em tempo real
 
             if (allStudentsData.length === 0) {
                 alert('Nenhum aluno encontrado nas turmas desta escola.');
@@ -132,10 +146,15 @@ export default function SchoolShow({ school, selectedSchool }) {
             link.remove();
             window.URL.revokeObjectURL(url);
 
+            let successMessage = `Exportação concluída! ${allStudentsData.length} alunos exportados.`;
+            if (failed.length > 0) {
+                successMessage = `Exportação concluída! ${allStudentsData.length} alunos exportados. ${failed.length} turma(s) falharam e foram listadas abaixo.`;
+            }
+
             setExportProgress({ 
                 current: totalClasses, 
                 total: totalClasses, 
-                message: `Exportação concluída! ${allStudentsData.length} alunos exportados.` 
+                message: successMessage
             });
             
         } catch (error) {
@@ -164,10 +183,6 @@ export default function SchoolShow({ school, selectedSchool }) {
             }
         } finally {
             setExportLoading(false);
-            // Fechar modal após 3 segundos se a exportação foi bem-sucedida
-            setTimeout(() => {
-                setShowProgressModal(false);
-            }, 3000);
         }
     };
 
@@ -552,6 +567,8 @@ export default function SchoolShow({ school, selectedSchool }) {
 
     return (
         <>
+
+            
             {/* Modal de Progresso da Exportação */}
             {showProgressModal && (
                 <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
@@ -594,13 +611,47 @@ export default function SchoolShow({ school, selectedSchool }) {
                                 {exportProgress.message}
                             </div>
                             
+                            {/* Lista de turmas que falharam */}
+                            {failedClasses.length > 0 && (
+                                <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                    <h4 className="text-sm font-medium text-yellow-800 mb-2">
+                                        ⚠️ Turmas com erro ({failedClasses.length})
+                                    </h4>
+                                    <div className="max-h-32 overflow-y-auto space-y-2">
+                                        {failedClasses.map((failedClass, index) => (
+                                            <div key={index} className="text-xs bg-white p-2 rounded border">
+                                                <div className="flex justify-between items-start">
+                                                    <div className="flex-1">
+                                                        <span className="font-medium text-gray-900">
+                                                             {failedClass.outDescTurma || failedClass.nome_turma}
+                                                         </span>
+                                                        <div className="text-gray-500 mt-1">
+                                                            {failedClass.error}
+                                                        </div>
+                                                    </div>
+                                                    <Link
+                                                         href={route('classes.show', failedClass.outCodTurma || failedClass.cod_turma)}
+                                                         className="ml-2 text-blue-600 hover:text-blue-800 text-xs underline"
+                                                         target="_blank"
+                                                     >
+                                                         Ver turma
+                                                     </Link>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            
                             {exportLoading && (
-                                <div className="flex items-center justify-center">
-                                    <svg className="animate-spin h-5 w-5 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
-                                    <span className="ml-2 text-sm text-gray-600">Processando...</span>
+                                <div className="flex flex-col items-center justify-center space-y-3">
+                                    <div className="flex items-center">
+                                        <svg className="animate-spin h-5 w-5 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        <span className="ml-2 text-sm text-gray-600">Processando...</span>
+                                    </div>
                                 </div>
                             )}
                         </div>
