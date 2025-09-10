@@ -31,6 +31,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/classes/{classCode}', [App\Http\Controllers\ClassController::class, 'show'])->name('classes.show');
     Route::post('/classes/export-excel', [App\Http\Controllers\ClassController::class, 'exportExcel'])->name('classes.export-excel');
     
+    // Rotas para exportação de alunos por escola
+    Route::post('/schools/export-students', [App\Http\Controllers\SchoolController::class, 'exportStudents'])->name('schools.export-students');
+    
+    // Novas rotas para exportação em etapas
+    Route::post('/schools/get-classes', [App\Http\Controllers\SchoolController::class, 'getSchoolClasses'])->name('schools.get-classes');
+    Route::post('/schools/get-class-students', [App\Http\Controllers\SchoolController::class, 'getClassStudentsForExport'])->name('schools.get-class-students');
+    Route::post('/schools/export-collected-students', [App\Http\Controllers\SchoolController::class, 'exportCollectedStudents'])->name('schools.export-collected-students');
+    
     // Rotas dos alunos
     Route::get('/students/{studentRa}', [App\Http\Controllers\StudentController::class, 'show'])->name('students.show');
     
@@ -38,8 +46,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/sed-api/test-connection', [App\Http\Controllers\SchoolController::class, 'testConnection'])->name('sed-api.test-connection');
     Route::get('/sed-api/classes', [App\Http\Controllers\SchoolController::class, 'getClasses'])->name('sed-api.classes');
 });
-
-
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

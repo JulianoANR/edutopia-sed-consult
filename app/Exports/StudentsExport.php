@@ -2,58 +2,41 @@
 
 namespace App\Exports;
 
+use App\Mappers\StudentExportMapper;
+
 class StudentsExport
 {
     protected $studentsData;
+    protected $additionalData;
+    protected $useSimplified;
 
-    public function __construct($studentsData)
+    public function __construct($studentsData, $additionalData = [], $useSimplified = true)
     {
         $this->studentsData = $studentsData;
+        $this->additionalData = $additionalData;
+        $this->useSimplified = $useSimplified;
     }
 
     public function exportCsv()
     {
-        $headers = [
-            'RA', 
-            'Nome', 
-            'Data Nascimento', 
-            // 'CPF', 
-            // 'RG', 
-            'Sexo', 
-            'Cor/Raça',
-            // 'Endereço', 
-            // 'Telefones', 
-            // 'Email', 
-            'Nome da Mãe', 
-            'Nome do Pai',
-            // 'Situação', 
-            // 'Turma', 
-            // 'Escola'
-        ];
+        // Usar o mapeador para obter cabeçalhos
+        $headers = $this->useSimplified 
+            ? StudentExportMapper::getSimplifiedHeaders()
+            : StudentExportMapper::getHeaders();
         
         $csvData = [];
         $csvData[] = $headers;
         
-        foreach ($this->studentsData as $student) {
-            $dadosPessoais = $student['outDadosPessoais'] ?? [];
+        foreach ($this->studentsData as $index => $student) {
+            // Obter dados adicionais para este aluno específico
+            $studentAdditionalData = $this->additionalData[$index] ?? [];
             
-            $csvData[] = [
-                ($dadosPessoais['outNumRA'] ?? '') . ($dadosPessoais['outDigitoRA'] ?? ''),
-                $dadosPessoais['outNomeAluno'] ?? '',
-                $dadosPessoais['outDataNascimento'] ?? '',
-                // $dadosPessoais['outNrCpf'] ?? '',
-                // $dadosPessoais['outNrRg'] ?? '',
-                $dadosPessoais['outSexo'] ?? '',
-                $dadosPessoais['outDescCorRaca'] ?? '',
-                // $this->formatAddress($student),
-                // $this->formatPhones($student),
-                // $this->formatEmails($student),
-                $dadosPessoais['outNomeMae'] ?? '',
-                $dadosPessoais['outNomePai'] ?? '',
-                // $dadosPessoais['outDescSituacaoMatricula'] ?? '',
-                // $student['outNomeTurma'] ?? '',
-                // $student['outNomeEscola'] ?? ''
-            ];
+            // Usar o mapeador para formatar os dados
+            $mappedData = $this->useSimplified 
+                ? StudentExportMapper::mapStudentDataSimplified($student, $studentAdditionalData)
+                : StudentExportMapper::mapStudentData($student, $studentAdditionalData);
+            
+            $csvData[] = $mappedData;
         }
         
         return $csvData;

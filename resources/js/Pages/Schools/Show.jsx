@@ -12,11 +12,164 @@ export default function SchoolShow({ school, selectedSchool }) {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
     const [schoolData, setSchoolData] = useState(null);
+    const [exportLoading, setExportLoading] = useState(false);
+    const [exportProgress, setExportProgress] = useState({ current: 0, total: 0, message: '' });
+    const [showProgressModal, setShowProgressModal] = useState(false);
 
     const tabs = [
         { id: 'school-data', name: 'Dados da Escola', icon: '📋' },
         { id: 'classes', name: 'Turmas', icon: '📚' }
     ];
+
+    // Nova função para exportar todos os alunos da escola em etapas
+    const handleExportStudents = async () => {
+        if (!school?.outCodEscola) {
+            alert('Código da escola não encontrado');
+            return;
+        }
+
+        setExportLoading(true);
+        setShowProgressModal(true);
+        setExportProgress({ current: 0, total: 0, message: 'Iniciando exportação...' });
+        
+        try {
+            // Etapa 1: Buscar turmas da escola
+            setExportProgress({ current: 0, total: 0, message: 'Buscando turmas da escola...' });
+            
+            const classesResponse = await axios.post('/schools/get-classes', {
+                ano_letivo: selectedYear,
+                cod_escola: school.outCodEscola
+            });
+
+            if (!classesResponse.data.success) {
+                throw new Error(classesResponse.data.message || 'Erro ao buscar turmas');
+            }
+
+            const schoolClasses = classesResponse.data.data.classes;
+            const totalClasses = schoolClasses.length;
+
+            if (totalClasses === 0) {
+                alert('Nenhuma turma encontrada para esta escola no ano letivo informado.');
+                return;
+            }
+
+            setExportProgress({ current: 0, total: totalClasses, message: `Encontradas ${totalClasses} turmas. Processando alunos...` });
+
+            // Etapa 2: Buscar alunos de cada turma
+            let allStudentsData = [];
+            let allAdditionalData = [];
+
+            for (let i = 0; i < schoolClasses.length; i++) {
+                const classItem = schoolClasses[i];
+                
+                setExportProgress({ 
+                    current: i + 1, 
+                    total: totalClasses, 
+                    message: `Processando turma ${classItem.nome_turma} (${i + 1}/${totalClasses})...` 
+                });
+
+                try {
+                    const studentsResponse = await axios.post('/schools/get-class-students', {
+                        cod_turma: classItem.cod_turma,
+                        nome_turma: classItem.nome_turma,
+                        nome_escola: school.outDescNomeEscola || 'Escola',
+                        cod_escola: school.outCodEscola
+                    });
+
+                    if (studentsResponse.data.success) {
+                        const classStudents = studentsResponse.data.data.students;
+                        const classAdditionalData = studentsResponse.data.data.additional_data;
+                        
+                        allStudentsData = allStudentsData.concat(classStudents);
+                        allAdditionalData = allAdditionalData.concat(classAdditionalData);
+                    }
+                } catch (classError) {
+                    console.error(`Erro ao processar turma ${classItem.nome_turma}:`, classError);
+                    // Continuar com as próximas turmas mesmo se uma falhar
+                }
+            }
+
+            if (allStudentsData.length === 0) {
+                alert('Nenhum aluno encontrado nas turmas desta escola.');
+                return;
+            }
+
+            // Etapa 3: Gerar e baixar arquivo
+            setExportProgress({ 
+                current: totalClasses, 
+                total: totalClasses, 
+                message: `Gerando arquivo com ${allStudentsData.length} alunos...` 
+            });
+
+            const exportResponse = await axios.post('/schools/export-collected-students', {
+                students_data: allStudentsData,
+                additional_data: allAdditionalData,
+                cod_escola: school.outCodEscola,
+                ano_letivo: selectedYear
+            }, {
+                responseType: 'blob'
+            });
+
+            // Criar URL para download
+            const url = window.URL.createObjectURL(new Blob([exportResponse.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            
+            // Extrair nome do arquivo do cabeçalho ou usar nome padrão
+            const contentDisposition = exportResponse.headers['content-disposition'];
+            let filename = `alunos_escola_${school.outCodEscola}_${selectedYear}_${new Date().toISOString().slice(0, 10)}.csv`;
+            
+            if (contentDisposition) {
+                const filenameMatch = contentDisposition.match(/filename="(.+)"/); 
+                if (filenameMatch) {
+                    filename = filenameMatch[1];
+                }
+            }
+            
+            link.setAttribute('download', filename);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+
+            setExportProgress({ 
+                current: totalClasses, 
+                total: totalClasses, 
+                message: `Exportação concluída! ${allStudentsData.length} alunos exportados.` 
+            });
+            
+        } catch (error) {
+            console.error('Erro ao exportar alunos:', error);
+            
+            let errorMessage = 'Erro ao exportar alunos da escola';
+            
+            if (error.response?.data) {
+                try {
+                    // Tentar ler a resposta de erro se for JSON
+                    const reader = new FileReader();
+                    reader.onload = function() {
+                        try {
+                            const errorData = JSON.parse(reader.result);
+                            alert(errorData.message || errorMessage);
+                        } catch {
+                            alert(errorMessage);
+                        }
+                    };
+                    reader.readAsText(error.response.data);
+                } catch {
+                    alert(errorMessage + ': ' + (error.message || 'Erro desconhecido'));
+                }
+            } else {
+                alert(errorMessage + ': ' + (error.message || 'Erro desconhecido'));
+            }
+        } finally {
+            setExportLoading(false);
+            // Fechar modal após 3 segundos se a exportação foi bem-sucedida
+            setTimeout(() => {
+                setShowProgressModal(false);
+            }, 3000);
+        }
+    };
 
     const loadTabData = async (tabId) => {
         if (tabId === 'classes') {
@@ -398,51 +551,132 @@ export default function SchoolShow({ school, selectedSchool }) {
     };
 
     return (
-        <AuthenticatedLayout
-            header={
-                <div className="flex justify-between items-center">
-                    <div className="flex items-center space-x-4">
-                        <Link
-                            href="/schools"
-                            className="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200"
-                        >
-                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                            </svg>
-                            Voltar às Escolas
-                        </Link>
-                        <div>
-                            <h2 className="text-xl font-semibold leading-tight text-gray-800">
-                                {school?.outDescNomeEscola || 'Escola'}
-                            </h2>
-                            <p className="text-sm text-gray-600">Código: {school.outCodEscola || 'N/A'}</p>
-                        </div>
-                    </div>
-                    <div className="flex items-center space-x-4">
-                        <div className="flex items-center space-x-2">
-                            <label htmlFor="year-select" className="text-sm font-medium text-gray-700">
-                                Ano Letivo:
-                            </label>
-                            <select
-                                id="year-select"
-                                value={selectedYear}
-                                onChange={(e) => setSelectedYear(e.target.value)}
-                                className="border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                            >
-                                {Array.from({ length: 10 }, (_, i) => {
-                                    const year = new Date().getFullYear() - i;
-                                    return (
-                                        <option key={year} value={year.toString()}>
-                                            {year}
-                                        </option>
-                                    );
-                                })}
-                            </select>
+        <>
+            {/* Modal de Progresso da Exportação */}
+            {showProgressModal && (
+                <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+                    <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+                        <div className="p-6">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-lg font-medium text-gray-900">
+                                    Exportando Alunos
+                                </h3>
+                                {!exportLoading && (
+                                    <button
+                                        onClick={() => setShowProgressModal(false)}
+                                        className="text-gray-400 hover:text-gray-600"
+                                    >
+                                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                )}
+                            </div>
+                            
+                            <div className="mb-4">
+                                <div className="flex justify-between text-sm text-gray-600 mb-2">
+                                    <span>Progresso</span>
+                                    <span>{exportProgress.current}/{exportProgress.total}</span>
+                                </div>
+                                <div className="w-full bg-gray-200 rounded-full h-2">
+                                    <div 
+                                        className="bg-green-600 h-2 rounded-full transition-all duration-300"
+                                        style={{ 
+                                            width: exportProgress.total > 0 
+                                                ? `${(exportProgress.current / exportProgress.total) * 100}%` 
+                                                : '0%' 
+                                        }}
+                                    ></div>
+                                </div>
+                            </div>
+                            
+                            <div className="text-sm text-gray-600 mb-4">
+                                {exportProgress.message}
+                            </div>
+                            
+                            {exportLoading && (
+                                <div className="flex items-center justify-center">
+                                    <svg className="animate-spin h-5 w-5 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    <span className="ml-2 text-sm text-gray-600">Processando...</span>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
-            }
-        >
+            )}
+            
+            <AuthenticatedLayout
+                header={
+                    <div className="flex justify-between items-center">
+                        <div className="flex items-center space-x-4">
+                            <Link
+                                href="/schools"
+                                className="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200"
+                            >
+                                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                                </svg>
+                                Voltar às Escolas
+                            </Link>
+                            <div>
+                                <h2 className="text-xl font-semibold leading-tight text-gray-800">
+                                    {school?.outDescNomeEscola || 'Escola'}
+                                </h2>
+                                <p className="text-sm text-gray-600">Código: {school.outCodEscola || 'N/A'}</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center space-x-4">
+                            <div className="flex items-center space-x-2">
+                                <label htmlFor="year-select" className="text-sm font-medium text-gray-700">
+                                    Ano Letivo:
+                                </label>
+                                <select
+                                    id="year-select"
+                                    value={selectedYear}
+                                    onChange={(e) => setSelectedYear(e.target.value)}
+                                    className="border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                >
+                                    {Array.from({ length: 10 }, (_, i) => {
+                                        const year = new Date().getFullYear() - i;
+                                        return (
+                                            <option key={year} value={year.toString()}>
+                                                {year}
+                                            </option>
+                                        );
+                                    })}
+                                </select>
+                            </div>
+                            
+                            {/* Botão de Exportar Alunos */}
+                            <button
+                                onClick={handleExportStudents}
+                                disabled={exportLoading || !school?.outCodEscola}
+                                className="inline-flex items-center px-4 py-2 bg-green-600 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                            >
+                                {exportLoading ? (
+                                    <>
+                                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        Exportando...
+                                    </>
+                                ) : (
+                                    <>
+                                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                        </svg>
+                                        Exportar Alunos
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                }
+            >
             <Head title={`${school?.outCodEscola || 'Escola'} - Sistema Educacional`} />
 
             <div className="py-12">
@@ -478,5 +712,6 @@ export default function SchoolShow({ school, selectedSchool }) {
                 </div>
             </div>
         </AuthenticatedLayout>
+        </>
     );
 }
