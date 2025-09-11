@@ -375,7 +375,7 @@ class SchoolController extends Controller
                     'turma' => $class['outTurma'] ?? '',
                     'turno' => $class['outDescricaoTurno'] ?? '',
                     'tipo_ensino' => $class['outDescTipoEnsino'] ?? '',
-                    'tipo_classe' => $class['outDescTipoClasse'] ?? ''
+                    'tipo_classe' => $class['outDescTipoClasse'] ?? 'COMUM',
                 ];
             }, $classes);
             
@@ -454,7 +454,7 @@ class SchoolController extends Controller
             // Buscar alunos da turma
             $studentsResult = $this->sedApiService->consultarTurma($codTurma);
             $students = $studentsResult['outAlunos'] ?? [];
-            
+
             if (empty($students)) {
                 return response()->json([
                     'success' => true,
@@ -499,7 +499,8 @@ class SchoolController extends Controller
                         'data_fim_matricula' => $student['outDataFimMatricula'] ?? '',
                         'turno' => $turno,
                         'tipo_ensino' => $tipo_ensino,
-                        'tipo_classe' => $tipo_classe
+                        'tipo_classe' => $tipo_classe,
+                        'situacao_matricula' => $student['outDescSitMatricula'] ?? ''
                     ];
                     
                 } catch (\Exception $e) {

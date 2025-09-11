@@ -14,6 +14,7 @@ class StudentExportMapper
         return [
             'RA',
             'Nome',
+            'Situação Matrícula',
             'Data Nascimento',
             // 'CPF',
             // 'RG',
@@ -24,7 +25,6 @@ class StudentExportMapper
             // 'Email',
             'Nome da Mãe',
             'Nome do Pai',
-            // 'Situação Matrícula',
             'Turma',
             'Turno',
             'Tipo Ensino',
@@ -33,7 +33,7 @@ class StudentExportMapper
             // 'Código Escola',
             'Data Início Matrícula',
             'Data Fim Matrícula',
-            'UF RA'
+            // 'UF RA'
         ];
     }
 
@@ -57,13 +57,16 @@ class StudentExportMapper
             
             // Nome do aluno
             $dadosPessoais['outNomeAluno'] ?? '',
+
+            // Situação da matrícula
+            $additionalData['situacao_matricula'] ?? '',
             
             // Data de nascimento
             self::formatDate($dadosPessoais['outDataNascimento'] ?? ''),
             
             // CPF
             // self::formatCpf($dadosPessoais['outNrCpf'] ?? ''),
-            
+
             // RG
             // $dadosPessoais['outNrRg'] ?? '',
             
@@ -87,9 +90,7 @@ class StudentExportMapper
             
             // Nome do pai
             $dadosPessoais['outNomePai'] ?? '',
-            
-            // Situação da matrícula
-            $dadosPessoais['outDescSituacaoMatricula'] ?? '',
+                        
             
             // Turma (vem dos dados adicionais)
             $additionalData['turma'] ?? '',
