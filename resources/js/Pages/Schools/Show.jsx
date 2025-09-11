@@ -76,7 +76,10 @@ export default function SchoolShow({ school, selectedSchool }) {
                         cod_turma: classItem.cod_turma,
                         nome_turma: classItem.nome_turma,
                         nome_escola: school.outDescNomeEscola || 'Escola',
-                        cod_escola: school.outCodEscola
+                        cod_escola: school.outCodEscola,
+                        turno: classItem.turno,
+                        tipo_ensino: classItem.tipo_ensino,
+                        tipo_classe: classItem.tipo_classe
                     });
 
                     if (studentsResponse.data.success) {
@@ -567,8 +570,6 @@ export default function SchoolShow({ school, selectedSchool }) {
 
     return (
         <>
-
-            
             {/* Modal de Progresso da Exportação */}
             {showProgressModal && (
                 <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
@@ -629,13 +630,13 @@ export default function SchoolShow({ school, selectedSchool }) {
                                                             {failedClass.error}
                                                         </div>
                                                     </div>
-                                                    <Link
+                                                    <a
                                                          href={route('classes.show', failedClass.outCodTurma || failedClass.cod_turma)}
                                                          className="ml-2 text-blue-600 hover:text-blue-800 text-xs underline"
                                                          target="_blank"
                                                      >
                                                          Ver turma
-                                                     </Link>
+                                                     </a>
                                                 </div>
                                             </div>
                                         ))}

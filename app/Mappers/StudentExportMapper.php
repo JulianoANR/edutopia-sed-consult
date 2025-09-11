@@ -15,19 +15,22 @@ class StudentExportMapper
             'RA',
             'Nome',
             'Data Nascimento',
-            'CPF',
-            'RG',
+            // 'CPF',
+            // 'RG',
             'Sexo',
             'Cor/Raça',
-            'Endereço Completo',
-            'Telefones',
-            'Email',
+            // 'Endereço Completo',
+            // 'Telefones',
+            // 'Email',
             'Nome da Mãe',
             'Nome do Pai',
-            'Situação Matrícula',
+            // 'Situação Matrícula',
             'Turma',
+            'Turno',
+            'Tipo Ensino',
+            'Tipo Classe',
             'Escola',
-            'Código Escola',
+            // 'Código Escola',
             'Data Início Matrícula',
             'Data Fim Matrícula',
             'UF RA'
@@ -59,10 +62,10 @@ class StudentExportMapper
             self::formatDate($dadosPessoais['outDataNascimento'] ?? ''),
             
             // CPF
-            self::formatCpf($dadosPessoais['outNrCpf'] ?? ''),
+            // self::formatCpf($dadosPessoais['outNrCpf'] ?? ''),
             
             // RG
-            $dadosPessoais['outNrRg'] ?? '',
+            // $dadosPessoais['outNrRg'] ?? '',
             
             // Sexo
             $dadosPessoais['outSexo'] ?? '',
@@ -71,13 +74,13 @@ class StudentExportMapper
             $dadosPessoais['outDescCorRaca'] ?? '',
             
             // Endereço completo
-            self::formatAddress($endereco),
+            // self::formatAddress($endereco),
             
             // Telefones
-            self::formatPhones($telefones),
+            // self::formatPhones($telefones),
             
             // Email
-            self::formatEmails($emails),
+            // self::formatEmails($emails),
             
             // Nome da mãe
             $dadosPessoais['outNomeMae'] ?? '',
@@ -90,12 +93,21 @@ class StudentExportMapper
             
             // Turma (vem dos dados adicionais)
             $additionalData['turma'] ?? '',
+
+            // Turno (vem dos dados adicionais)
+            $additionalData['turno'] ?? '',
+            
+            // Tipo Ensino (vem dos dados adicionais)
+            $additionalData['tipo_ensino'] ?? '',
+            
+            // Tipo Classe (vem dos dados adicionais)
+            $additionalData['tipo_classe'] ?? '',
             
             // Escola (vem dos dados adicionais)
             $additionalData['escola'] ?? '',
             
             // Código da escola (vem dos dados adicionais)
-            $additionalData['codigo_escola'] ?? '',
+            // $additionalData['codigo_escola'] ?? '',
             
             // Data início matrícula (vem dos dados adicionais)
             self::formatDate($additionalData['data_inicio_matricula'] ?? ''),
@@ -104,7 +116,7 @@ class StudentExportMapper
             self::formatDate($additionalData['data_fim_matricula'] ?? ''),
             
             // UF do RA
-            $dadosPessoais['outSiglaUFRA'] ?? 'SP'
+            // $dadosPessoais['outSiglaUFRA'] ?? 'SP'
         ];
     }
 
@@ -138,13 +150,13 @@ class StudentExportMapper
             $parts[] = $endereco['outCidade'];
         }
         
-        if (!empty($endereco['outUF'])) {
-            $parts[] = $endereco['outUF'];
-        }
+        // if (!empty($endereco['outUF'])) {
+        //     $parts[] = $endereco['outUF'];
+        // }
         
-        if (!empty($endereco['outCEP'])) {
-            $parts[] = 'CEP: ' . $endereco['outCEP'];
-        }
+        // if (!empty($endereco['outCEP'])) {
+        //     $parts[] = 'CEP: ' . $endereco['outCEP'];
+        // }
         
         return implode(', ', $parts);
     }

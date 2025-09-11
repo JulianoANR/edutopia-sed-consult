@@ -366,13 +366,16 @@ class SchoolController extends Controller
                 ], 404);
             }
             
-            // Formatar dados das turmas para o frontend
+            //Formatar dados das turmas para o frontend
             $formattedClasses = array_map(function($class) {
                 return [
                     'cod_turma' => $class['outNumClasse'] ?? null,
                     'nome_turma' => ($class['outCodSerieAno'] ?? '') . '°' . ($class['outTurma'] ?? ''),
                     'serie' => $class['outCodSerieAno'] ?? '',
-                    'turma' => $class['outTurma'] ?? ''
+                    'turma' => $class['outTurma'] ?? '',
+                    'turno' => $class['outDescricaoTurno'] ?? '',
+                    'tipo_ensino' => $class['outDescTipoEnsino'] ?? '',
+                    'tipo_classe' => $class['outDescTipoClasse'] ?? ''
                 ];
             }, $classes);
             
@@ -439,6 +442,9 @@ class SchoolController extends Controller
             $nomeTurma = $request->input('nome_turma');
             $nomeEscola = $request->input('nome_escola');
             $codEscola = $request->input('cod_escola');
+            $turno = $request->input('turno');
+            $tipo_ensino = $request->input('tipo_ensino');
+            $tipo_classe = $request->input('tipo_classe');
             
             Log::info('Buscando alunos da turma para exportação', [
                 'cod_turma' => $codTurma,
@@ -490,7 +496,10 @@ class SchoolController extends Controller
                         'escola' => $nomeEscola,
                         'codigo_escola' => $codEscola,
                         'data_inicio_matricula' => $student['outDataInicioMatricula'] ?? '',
-                        'data_fim_matricula' => $student['outDataFimMatricula'] ?? ''
+                        'data_fim_matricula' => $student['outDataFimMatricula'] ?? '',
+                        'turno' => $turno,
+                        'tipo_ensino' => $tipo_ensino,
+                        'tipo_classe' => $tipo_classe
                     ];
                     
                 } catch (\Exception $e) {
