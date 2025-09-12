@@ -28,9 +28,11 @@ class StudentExportMapper
             'Turma',
             'Turno',
             'Tipo Ensino',
+            'Código Tipo Ensino',
             'Tipo Classe',
+            'Código Tipo Classe',
             'Escola',
-            // 'Código Escola',
+            'Código Escola',
             'Data Início Matrícula',
             'Data Fim Matrícula',
             // 'UF RA'
@@ -90,7 +92,6 @@ class StudentExportMapper
             
             // Nome do pai
             $dadosPessoais['outNomePai'] ?? '',
-                        
             
             // Turma (vem dos dados adicionais)
             $additionalData['turma'] ?? '',
@@ -100,15 +101,21 @@ class StudentExportMapper
             
             // Tipo Ensino (vem dos dados adicionais)
             $additionalData['tipo_ensino'] ?? '',
+
+            // Código do tipo ensino (vem dos dados adicionais)
+            $additionalData['cod_tipo_ensino'] ?? '',
             
             // Tipo Classe (vem dos dados adicionais)
             $additionalData['tipo_classe'] ?? '',
+
+            // Código do tipo classe (vem dos dados adicionais)
+            $additionalData['cod_tipo_classe'] ?? '',
             
             // Escola (vem dos dados adicionais)
             $additionalData['escola'] ?? '',
             
             // Código da escola (vem dos dados adicionais)
-            // $additionalData['codigo_escola'] ?? '',
+            $additionalData['codigo_escola'] ?? '',
             
             // Data início matrícula (vem dos dados adicionais)
             self::formatDate($additionalData['data_inicio_matricula'] ?? ''),
@@ -118,6 +125,9 @@ class StudentExportMapper
             
             // UF do RA
             // $dadosPessoais['outSiglaUFRA'] ?? 'SP'
+
+
+
         ];
     }
 

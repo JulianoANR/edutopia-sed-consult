@@ -156,42 +156,6 @@ class SedApiController extends Controller
     }
 
     /**
-     * Example: Get students from SED API
-     * 
-     * @param Request $request
-     * @return JsonResponse
-     */
-    public function getStudents(Request $request): JsonResponse
-    {
-        try {
-            $filters = $request->only(['name', 'cpf', 'school_id', 'page', 'limit']);
-            $students = $this->sedApiService->getStudents($filters);
-
-            return response()->json([
-                'success' => true,
-                'data' => $students,
-            ]);
-        } catch (SedApiException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao buscar alunos na API SED',
-                'error' => $e->getMessage(),
-            ], $e->getHttpStatusCode());
-        } catch (\Exception $e) {
-            Log::error('Unexpected error while fetching students', [
-                'error' => $e->getMessage(),
-                'filters' => $filters ?? [],
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro interno do servidor',
-                'error' => 'Erro inesperado ao buscar alunos',
-            ], 500);
-        }
-    }
-
-    /**
      * Buscar escolas por município e rede de ensino
      * 
      * @param Request $request

@@ -157,75 +157,6 @@ class SchoolController extends Controller
     }
 
     /**
-     * Busca os alunos de uma escola específica
-     */
-    public function students(Request $request, $schoolId)
-    {
-        try {
-            $students = $this->sedApiService->getStudents($schoolId);
-            
-            // Normaliza os dados dos alunos
-            $normalizedStudents = collect($students)->map(function ($student) {
-                return [
-                    'id' => $student['id'] ?? null,
-                    'name' => $student['name'] ?? $student['nome'] ?? 'N/A',
-                    'registration' => $student['registration'] ?? $student['matricula'] ?? 'N/A',
-                    'class' => $student['class'] ?? $student['turma'] ?? 'N/A',
-                    'status' => $student['status'] ?? 'active'
-                ];
-            })->toArray();
-            
-            return response()->json([
-                'success' => true,
-                'students' => $normalizedStudents
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Erro ao carregar alunos: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao carregar alunos',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Busca as turmas de uma escola específica
-     */
-    public function classes(Request $request, $schoolId)
-    {
-        try {
-            $classes = $this->sedApiService->getClasses($schoolId);
-            
-            // Normaliza os dados das turmas
-            $normalizedClasses = collect($classes)->map(function ($class) {
-                return [
-                    'id' => $class['id'] ?? null,
-                    'name' => $class['name'] ?? $class['nome'] ?? 'N/A',
-                    'grade' => $class['grade'] ?? $class['serie'] ?? 'N/A',
-                    'shift' => $class['shift'] ?? $class['turno'] ?? 'N/A',
-                    'students_count' => $class['students_count'] ?? $class['total_alunos'] ?? 0,
-                    'teacher' => $class['teacher'] ?? $class['professor'] ?? 'N/A'
-                ];
-            })->toArray();
-            
-            return response()->json([
-                'success' => true,
-                'classes' => $normalizedClasses
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Erro ao carregar turmas: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao carregar turmas',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
      * Testa a conexão com a API SED
      */
     public function testConnection()
@@ -376,6 +307,10 @@ class SchoolController extends Controller
                     'turno' => $class['outDescricaoTurno'] ?? '',
                     'tipo_ensino' => $class['outDescTipoEnsino'] ?? '',
                     'tipo_classe' => $class['outDescTipoClasse'] ?? 'COMUM',
+                    'class' => $class,
+
+                    'cod_tipo_ensino' => $class['outCodTipoEnsino'] ?? '',
+                    'cod_tipo_classe' => $class['outCodTipoClasse'] ?? '',
                 ];
             }, $classes);
             
@@ -445,6 +380,8 @@ class SchoolController extends Controller
             $turno = $request->input('turno');
             $tipo_ensino = $request->input('tipo_ensino');
             $tipo_classe = $request->input('tipo_classe');
+            $cod_tipo_ensino = $request->input('cod_tipo_ensino');
+            $cod_tipo_classe = $request->input('cod_tipo_classe');
             
             Log::info('Buscando alunos da turma para exportação', [
                 'cod_turma' => $codTurma,
@@ -500,7 +437,9 @@ class SchoolController extends Controller
                         'turno' => $turno,
                         'tipo_ensino' => $tipo_ensino,
                         'tipo_classe' => $tipo_classe,
-                        'situacao_matricula' => $student['outDescSitMatricula'] ?? ''
+                        'situacao_matricula' => $student['outDescSitMatricula'] ?? '',
+                        'cod_tipo_ensino' => $cod_tipo_ensino,
+                        'cod_tipo_classe' => $cod_tipo_classe,
                     ];
                     
                 } catch (\Exception $e) {

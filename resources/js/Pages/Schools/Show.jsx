@@ -65,7 +65,7 @@ export default function SchoolShow({ school, selectedSchool }) {
             for (let i = 0; i < schoolClasses.length; i++) {
                 const classItem = schoolClasses[i];
                 
-                setExportProgress({ 
+                setExportProgress({     
                     current: i + 1, 
                     total: totalClasses, 
                     message: `Processando turma ${classItem.nome_turma} (${i + 1}/${totalClasses})...` 
@@ -79,7 +79,9 @@ export default function SchoolShow({ school, selectedSchool }) {
                         cod_escola: school.outCodEscola,
                         turno: classItem.turno,
                         tipo_ensino: classItem.tipo_ensino,
-                        tipo_classe: classItem.tipo_classe
+                        tipo_classe: classItem.tipo_classe,
+                        cod_tipo_ensino: classItem.cod_tipo_ensino,
+                        cod_tipo_classe: classItem.cod_tipo_classe,
                     });
 
                     if (studentsResponse.data.success) {
