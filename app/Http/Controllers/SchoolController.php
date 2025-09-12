@@ -307,7 +307,7 @@ class SchoolController extends Controller
                     'turno' => $class['outDescricaoTurno'] ?? '',
                     'tipo_ensino' => $class['outDescTipoEnsino'] ?? '',
                     'tipo_classe' => $class['outDescTipoClasse'] ?? 'COMUM',
-                    'class' => $class,
+                    // 'class' => $class,
 
                     'cod_tipo_ensino' => $class['outCodTipoEnsino'] ?? '',
                     'cod_tipo_classe' => $class['outCodTipoClasse'] ?? '',
