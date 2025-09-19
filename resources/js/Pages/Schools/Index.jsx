@@ -4,13 +4,23 @@ import { useState, useEffect } from 'react';
 import { router } from '@inertiajs/react';
 import axios from 'axios';
 
-export default function SchoolsIndex({ schools, selectedSchool, connectionStatus }) {
+export default function SchoolsIndex({ schools, selectedSchool, connectionStatus, redeEnsinoId }) {
     const [loading, setLoading] = useState(false);
     const [testingConnection, setTestingConnection] = useState(false);
     const [connectionResult, setConnectionResult] = useState(connectionStatus);
     const [searchTerm, setSearchTerm] = useState('');
     const [filteredSchools, setFilteredSchools] = useState(schools);
+    const [selectedRedeEnsino, setSelectedRedeEnsino] = useState(redeEnsinoId || 2);
+    const [loadingRedeEnsino, setLoadingRedeEnsino] = useState(false);
 
+    const redesEnsino = [
+        { value: 1, label: 'Estadual', icon: '🏛️' },
+        { value: 2, label: 'Municipal', icon: '🏢' },
+        { value: 3, label: 'Privada', icon: '🏫' },
+        { value: 4, label: 'Federal', icon: '🏛️' },
+        { value: 5, label: 'Estadual Outros (Centro Paula Souza)', icon: '🎓' }
+    ];
+    
     // Atualiza filteredSchools quando schools muda
     useEffect(() => {
         setFilteredSchools(schools);
@@ -25,7 +35,7 @@ export default function SchoolsIndex({ schools, selectedSchool, connectionStatus
             });
             
             // Redireciona para os detalhes da escola
-            router.visit(`/schools/${school.outCodEscola}`);
+            router.visit(`/schools/view/${school.outCodEscola}/${selectedRedeEnsino}`);
         } catch (error) {
             console.error('Erro ao selecionar escola:', error);
             alert('Erro ao selecionar escola: ' + (error.response?.data?.message || error.message));
@@ -59,6 +69,18 @@ export default function SchoolsIndex({ schools, selectedSchool, connectionStatus
                 school.outCodEscola?.toString().toLowerCase().includes(term.toLowerCase())
             );
             setFilteredSchools(filtered);
+        }
+    };
+
+    const handleRedeEnsinoChange = (value) => {
+        setSelectedRedeEnsino(value);
+
+        if (value != selectedRedeEnsino) {
+            router.visit(`/schools/${value}`, {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true
+            });
         }
     };
 
@@ -123,6 +145,37 @@ export default function SchoolsIndex({ schools, selectedSchool, connectionStatus
                                 </div>
                             </div>
                             
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mt-3">
+                                {redesEnsino.map((rede) => (
+                                    <button
+                                        key={rede.value}
+                                        onClick={() => handleRedeEnsinoChange(rede.value)}
+                                        disabled={loadingRedeEnsino}
+                                        className={`
+                                            relative p-4 rounded-lg border-2 transition-all duration-200 text-left
+                                            ${selectedRedeEnsino == rede.value 
+                                                ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-md' 
+                                                : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+                                            }
+                                            ${loadingRedeEnsino ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                                        `}
+                                    >
+                                        <div className="flex items-center space-x-3">
+                                            <span className="text-2xl">{rede.icon}</span>
+                                            <div>
+                                                <div className="font-medium text-sm">{rede.label}</div>
+                                                <div className="text-xs text-gray-500">Código {rede.value}</div>
+                                            </div>
+                                        </div>
+                                        {selectedRedeEnsino == rede.value && (
+                                            <div className="absolute top-2 right-2">
+                                                <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                                            </div>
+                                        )}
+                                    </button>
+                                ))}
+                            </div>
+
                             {/* Status da conexão */}
                             {connectionResult && (
                                 <div className={`mt-4 p-3 rounded-md ${

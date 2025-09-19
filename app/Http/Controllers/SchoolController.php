@@ -25,8 +25,12 @@ class SchoolController extends Controller
     /**
      * Exibe a listagem de escolas
      */
-    public function index(Request $request)
+    public function index(Request $request, $redeEnsinoId = null)
     {
+        if ($redeEnsinoId != 0 && !in_array($redeEnsinoId, range(1, 5))) {
+            abort(404);
+        }
+        
         try {
             // Testa a conexão primeiro
             $connectionStatus = $this->getConnectionStatus();
@@ -55,12 +59,13 @@ class SchoolController extends Controller
                 return Inertia::render('Schools/Index', [
                     'schools' => $testSchools,
                     'selectedSchool' => Session::get('selected_school'),
-                    'connectionStatus' => array_merge($connectionStatus, ['message' => 'Usando dados de teste - API SED indisponível'])
+                    'connectionStatus' => array_merge($connectionStatus, ['message' => 'Usando dados de teste - API SED indisponível']),
+                    'redeEnsinoId' => $redeEnsinoId
                 ]);
             }
             
             // Busca escolas por município via API SED
-            $schoolsData = $this->sedApiService->getEscolasPorMunicipio();
+            $schoolsData = $this->sedApiService->getEscolasPorMunicipio(null, null, $redeEnsinoId);
             $schools = $schoolsData['outEscolas'] ?? [];
             
             // Verifica se há uma escola selecionada na sessão
@@ -69,7 +74,8 @@ class SchoolController extends Controller
             return Inertia::render('Schools/Index', [
                 'schools' => $schools,
                 'selectedSchool' => $selectedSchool,
-                'connectionStatus' => $connectionStatus
+                'connectionStatus' => $connectionStatus,
+                'redeEnsinoId' => $redeEnsinoId
             ]);
         } catch (\Exception $e) {
             Log::error('Erro ao carregar escolas: ' . $e->getMessage());
@@ -81,7 +87,8 @@ class SchoolController extends Controller
                     'success' => false,
                     'message' => 'Erro ao carregar escolas',
                     'error' => $e->getMessage()
-                ]
+                ],
+                'redeEnsinoId' => $redeEnsinoId
             ]);
         }
     }
@@ -89,11 +96,11 @@ class SchoolController extends Controller
     /**
      * Exibe os detalhes de uma escola específica
      */
-    public function show(Request $request, $schoolId)
+    public function show(Request $request, $schoolId, $redeEnsinoId = null)
     {
         try {
             // Busca todas as escolas e filtra pela específica
-            $schoolsData = $this->sedApiService->getEscolasPorMunicipio();
+            $schoolsData = $this->sedApiService->getEscolasPorMunicipio(null, null, $redeEnsinoId);
             $schools = $schoolsData['outEscolas'] ?? [];
             
             // Filtra a escola pelo código
