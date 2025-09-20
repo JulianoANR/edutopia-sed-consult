@@ -15,12 +15,28 @@ export default function SchoolShow({ school, selectedSchool }) {
     const [exportLoading, setExportLoading] = useState(false);
     const [exportProgress, setExportProgress] = useState({ current: 0, total: 0, message: '' });
     const [showProgressModal, setShowProgressModal] = useState(false);
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [failedClasses, setFailedClasses] = useState([]);
 
     const tabs = [
         { id: 'school-data', name: 'Dados da Escola', icon: '📋' },
         { id: 'classes', name: 'Turmas', icon: '📚' }
     ];
+
+    // Nova função para abrir modal de confirmação
+    const handleExportClick = () => {
+        if (!school?.outCodEscola) {
+            alert('Código da escola não encontrado');
+            return;
+        }
+        setShowConfirmModal(true);
+    };
+
+    // Função para confirmar e iniciar exportação
+    const confirmExport = () => {
+        setShowConfirmModal(false);
+        handleExportStudents();
+    };
 
     // Nova função para exportar todos os alunos da escola em etapas
     const handleExportStudents = async () => {
@@ -572,6 +588,78 @@ export default function SchoolShow({ school, selectedSchool }) {
 
     return (
         <>
+            {/* Modal de Confirmação da Exportação */}
+            {showConfirmModal && (
+                <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+                    <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+                        <div className="p-6">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-lg font-medium text-gray-900">
+                                    Confirmar Exportação
+                                </h3>
+                                <button
+                                    onClick={() => setShowConfirmModal(false)}
+                                    className="text-gray-400 hover:text-gray-600"
+                                >
+                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                            
+                            <div className="mb-6">
+                                <div className="flex items-center mb-4">
+                                    <div className="flex-shrink-0">
+                                        <svg className="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                        </svg>
+                                    </div>
+                                    <div className="ml-4">
+                                        <h4 className="text-lg font-medium text-gray-900">
+                                            Exportar Alunos da Escola
+                                        </h4>
+                                        <p className="text-sm text-gray-600 mt-1">
+                                            Você está prestes a exportar todos os alunos da escola <strong>{school?.outDescNomeEscola}</strong> para o ano letivo <strong>{selectedYear}</strong>.
+                                        </p>
+                                    </div>
+                                </div>
+                                
+                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                    <div className="flex">
+                                        <div className="flex-shrink-0">
+                                            <svg className="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                                            </svg>
+                                        </div>
+                                        <div className="ml-3">
+                                            <p className="text-sm text-blue-700">
+                                                Este processo pode levar alguns minutos dependendo do número de turmas e alunos. 
+                                                Você poderá acompanhar o progresso na próxima tela.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div className="flex justify-end space-x-3">
+                                <button
+                                    onClick={() => setShowConfirmModal(false)}
+                                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={confirmExport}
+                                    className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                                >
+                                    Confirmar Exportação
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Modal de Progresso da Exportação */}
             {showProgressModal && (
                 <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
@@ -706,7 +794,7 @@ export default function SchoolShow({ school, selectedSchool }) {
                             
                             {/* Botão de Exportar Alunos */}
                             <button
-                                onClick={handleExportStudents}
+                                onClick={handleExportClick}
                                 disabled={exportLoading || !school?.outCodEscola}
                                 className="inline-flex items-center px-4 py-2 bg-green-600 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                             >
