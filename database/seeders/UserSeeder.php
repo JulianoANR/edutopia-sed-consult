@@ -15,10 +15,14 @@ class UserSeeder extends Seeder
     public function run(): void
     {
         User::create([
-            'name' => 'Admin User',
-            'email' => 'admin@edutopia.com',
-            'password' => Hash::make('password'),
+            'name' => 'Admin Jacarei',
+            'email' => 'admin@jacarei.com',
+            'password' => Hash::make('jacarei@1542536'),
             'email_verified_at' => now(),
+            'sed_diretoria_id' => '20207',
+            'sed_municipio_id' => '9267',
+            'sed_username' => 'SME392',
+            'sed_password' => 'zw28frb32x',
         ]);
     }
 }

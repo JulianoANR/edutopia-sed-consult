@@ -22,11 +22,23 @@ class SedApiService
     public function __construct()
     {
         $this->baseUrl = config('sed.api.url');
-        $this->username = config('sed.api.username');
-        $this->password = config('sed.api.password');
-        $this->diretoriaId = config('sed.api.diretoria_id');
-        $this->municipioId = config('sed.api.municipio_id');
         $this->redeEnsinoCod = config('sed.api.rede_ensino_cod');
+        
+        // Get user data from authenticated user
+        $user = auth()->user();
+        
+        if ($user) {
+            $this->username = $user->sed_username;
+            $this->password = $user->sed_password;
+            $this->diretoriaId = (int) $user->sed_diretoria_id;
+            $this->municipioId = (int) $user->sed_municipio_id;
+        } else {
+            // Fallback to config if no user is authenticated (for testing purposes)
+            $this->username = config('sed.api.username');
+            $this->password = config('sed.api.password');
+            $this->diretoriaId = config('sed.api.diretoria_id');
+            $this->municipioId = config('sed.api.municipio_id');
+        }
         
         // Validate required configuration
         if (empty($this->baseUrl)) {
@@ -158,6 +170,17 @@ class SedApiService
         
         // Check if token expires within the buffer time
         return $now->addSeconds($this->tokenExpirationBuffer)->isBefore($expiresAt);
+    }
+
+    /**
+     * Check if there is a valid cached token
+     * 
+     * @return bool
+     */
+    public function hasValidToken(): bool
+    {
+        $cachedToken = Cache::get($this->tokenCacheKey);
+        return $cachedToken && $this->isTokenValid($cachedToken);
     }
 
     /**

@@ -19,6 +19,10 @@ class AdminUserSeeder extends Seeder
             'email' => 'admin@admin.com',
             'password' => Hash::make('admin'),
             'email_verified_at' => now(),
+            'sed_diretoria_id' => '20207',
+            'sed_municipio_id' => '9267',
+            'sed_username' => 'SME392',
+            'sed_password' => 'zw28frb32x',
         ]);
     }
 }

@@ -26,10 +26,12 @@ class SedApiController extends Controller
     {
         try {
             // First, test if we can instantiate the service
+            $user = auth()->user();
+            
             $config = [
                 'url' => config('sed.api.url'),
-                'username' => config('sed.api.username'),
-                'password' => config('sed.api.password'),
+                'username' => $user ? $user->sed_username : config('sed.api.username'),
+                'password' => $user ? $user->sed_password : config('sed.api.password'),
             ];
             
             // Check if configuration is loaded
@@ -44,7 +46,7 @@ class SedApiController extends Controller
             if (empty($config['username'])) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Configuração SED_USERNAME não encontrada',
+                    'message' => 'Configuração SED_USERNAME não encontrada no usuário',
                     'config_check' => $config,
                 ], 500);
             }
@@ -52,7 +54,7 @@ class SedApiController extends Controller
             if (empty($config['password'])) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Configuração SED_PASSWORD não encontrada',
+                    'message' => 'Configuração SED_PASSWORD não encontrada no usuário',
                     'config_check' => $config,
                 ], 500);
             }
@@ -81,8 +83,8 @@ class SedApiController extends Controller
                 'error' => $e->getMessage(),
                 'config_check' => [
                     'url' => config('sed.api.url'),
-                    'username' => config('sed.api.username') ? 'SET' : 'NOT SET',
-                    'password' => config('sed.api.password') ? 'SET' : 'NOT SET',
+                    'username' => auth()->user() && auth()->user()->sed_username ? 'SET' : 'NOT SET',
+                    'password' => auth()->user() && auth()->user()->sed_password ? 'SET' : 'NOT SET',
                 ],
             ], $e->getHttpStatusCode());
         } catch (\Exception $e) {
@@ -97,8 +99,8 @@ class SedApiController extends Controller
                 'error' => $e->getMessage(),
                 'config_check' => [
                     'url' => config('sed.api.url'),
-                    'username' => config('sed.api.username') ? 'SET' : 'NOT SET',
-                    'password' => config('sed.api.password') ? 'SET' : 'NOT SET',
+                    'username' => auth()->user() && auth()->user()->sed_username ? 'SET' : 'NOT SET',
+                    'password' => auth()->user() && auth()->user()->sed_password ? 'SET' : 'NOT SET',
                 ],
             ], 500);
         }
@@ -112,15 +114,16 @@ class SedApiController extends Controller
     public function getTokenStatus(): JsonResponse
     {
         try {
-            $isValid = $this->sedApiService->isTokenValid();
-            $token = $this->sedApiService->getToken();
+            $hasValidToken = $this->sedApiService->hasValidToken();
+            $tokenInfo = $this->sedApiService->getTokenInfo();
 
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'has_token' => !empty($token),
-                    'is_valid' => $isValid,
-                    'token_preview' => $token ? substr($token, 0, 10) . '...' : null,
+                    'has_token' => !empty($tokenInfo),
+                    'is_valid' => $hasValidToken,
+                    'token_preview' => $tokenInfo && isset($tokenInfo['token']) ? substr($tokenInfo['token'], 0, 10) . '...' : null,
+                    'expires_at' => $tokenInfo['expires_at'] ?? null,
                 ]
             ]);
         } catch (\Exception $e) {
