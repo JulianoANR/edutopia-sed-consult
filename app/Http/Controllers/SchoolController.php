@@ -516,13 +516,15 @@ class SchoolController extends Controller
                 'students_data' => 'required|array',
                 'additional_data' => 'required|array',
                 'cod_escola' => 'required|string',
-                'ano_letivo' => 'required|string|size:4'
+                'ano_letivo' => 'required|string|size:4',
+                'selected_fields' => 'array'
             ]);
             
             $studentsData = $request->input('students_data');
             $additionalData = $request->input('additional_data');
             $codEscola = $request->input('cod_escola');
             $anoLetivo = $request->input('ano_letivo');
+            $selectedFields = $request->input('selected_fields', []);
             
             if (empty($studentsData)) {
                 return response()->json([
@@ -533,11 +535,12 @@ class SchoolController extends Controller
             
             Log::info('Gerando exportação de dados coletados', [
                 'total_alunos' => count($studentsData),
-                'cod_escola' => $codEscola
+                'cod_escola' => $codEscola,
+                'selected_fields' => $selectedFields
             ]);
             
             // Gerar o arquivo CSV usando a classe de exportação
-            $export = new StudentsExport($studentsData, $additionalData, false);
+            $export = new StudentsExport($studentsData, $additionalData, false, $selectedFields);
             $csvData = $export->exportCsv();
             
             // Retornar o arquivo para download

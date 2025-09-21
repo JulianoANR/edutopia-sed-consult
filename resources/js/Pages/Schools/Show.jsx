@@ -2,6 +2,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { EXPORT_FIELDS, getDefaultFields, getFieldsByCategory } from '../../config/export-fields.js';
 export default function SchoolShow({ school, selectedSchool }) {
     const [activeTab, setActiveTab] = useState('school-data');
 
@@ -16,6 +17,7 @@ export default function SchoolShow({ school, selectedSchool }) {
     const [exportProgress, setExportProgress] = useState({ current: 0, total: 0, message: '' });
     const [showProgressModal, setShowProgressModal] = useState(false);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [selectedFields, setSelectedFields] = useState(() => getDefaultFields().map(field => field.key));
     const [failedClasses, setFailedClasses] = useState([]);
 
     const tabs = [
@@ -36,6 +38,52 @@ export default function SchoolShow({ school, selectedSchool }) {
     const confirmExport = () => {
         setShowConfirmModal(false);
         handleExportStudents();
+    };
+
+    // Função para alternar seleção de campo
+    const toggleField = (fieldKey) => {
+        setSelectedFields(prev => {
+            if (prev.includes(fieldKey)) {
+                return prev.filter(key => key !== fieldKey);
+            } else {
+                return [...prev, fieldKey];
+            }
+        });
+    };
+
+    // Função para selecionar/deselecionar todos os campos de uma categoria
+    const toggleCategoryFields = (categoryFields, allSelected) => {
+        const categoryKeys = categoryFields.map(field => field.key);
+        
+        setSelectedFields(prev => {
+            if (allSelected) {
+                // Remove todos os campos da categoria
+                return prev.filter(key => !categoryKeys.includes(key));
+            } else {
+                // Adiciona todos os campos da categoria
+                const newFields = [...prev];
+                categoryKeys.forEach(key => {
+                    if (!newFields.includes(key)) {
+                        newFields.push(key);
+                    }
+                });
+                return newFields;
+            }
+        });
+    };
+
+    // Função para marcar/desmarcar todos os campos
+    const toggleAllFields = () => {
+        const allFieldKeys = EXPORT_FIELDS.map(field => field.key);
+        const allSelected = selectedFields.length === allFieldKeys.length;
+        
+        if (allSelected) {
+            // Desmarcar todos
+            setSelectedFields([]);
+        } else {
+            // Marcar todos
+            setSelectedFields(allFieldKeys);
+        }
     };
 
     // Nova função para exportar todos os alunos da escola em etapas
@@ -140,7 +188,8 @@ export default function SchoolShow({ school, selectedSchool }) {
                 students_data: allStudentsData,
                 additional_data: allAdditionalData,
                 cod_escola: school.outCodEscola,
-                ano_letivo: selectedYear
+                ano_letivo: selectedYear,
+                selected_fields: selectedFields
             }, {
                 responseType: 'blob'
             });
@@ -591,7 +640,7 @@ export default function SchoolShow({ school, selectedSchool }) {
             {/* Modal de Confirmação da Exportação */}
             {showConfirmModal && (
                 <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
-                    <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+                    <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
                         <div className="p-6">
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="text-lg font-medium text-gray-900">
@@ -624,7 +673,7 @@ export default function SchoolShow({ school, selectedSchool }) {
                                     </div>
                                 </div>
                                 
-                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
                                     <div className="flex">
                                         <div className="flex-shrink-0">
                                             <svg className="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
@@ -639,6 +688,83 @@ export default function SchoolShow({ school, selectedSchool }) {
                                         </div>
                                     </div>
                                 </div>
+
+                                {/* Seleção de Campos para Exportação */}
+                                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                                    <h5 className="text-md font-medium text-gray-900 mb-3 flex items-center">
+                                        <svg className="w-5 h-5 text-gray-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                                        </svg>
+                                        Selecionar Campos para Exportação
+                                    </h5>
+                                    <div className="flex items-center justify-between mb-4">
+                                        <p className="text-sm text-gray-600">
+                                            Escolha quais campos deseja incluir no arquivo de exportação:
+                                        </p>
+                                        <button
+                                            onClick={toggleAllFields}
+                                            className="px-3 py-1 text-xs font-medium text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-md hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1"
+                                        >
+                                            {selectedFields.length === EXPORT_FIELDS.length ? 'Desmarcar Todos' : 'Marcar Todos'}
+                                        </button>
+                                    </div>
+                                    
+                                    <div className="space-y-4 max-h-64 overflow-y-auto">
+                                        {Object.entries(getFieldsByCategory()).map(([categoryName, categoryFields]) => {
+                                            const selectedInCategory = categoryFields.filter(field => selectedFields.includes(field.key)).length;
+                                            const allSelected = selectedInCategory === categoryFields.length;
+                                            const someSelected = selectedInCategory > 0 && selectedInCategory < categoryFields.length;
+                                            
+                                            return (
+                                                <div key={categoryName} className="border border-gray-200 rounded-lg p-3 bg-white">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <label className="flex items-center cursor-pointer">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={allSelected}
+                                                                ref={input => {
+                                                                    if (input) input.indeterminate = someSelected;
+                                                                }}
+                                                                onChange={() => toggleCategoryFields(categoryFields, allSelected)}
+                                                                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                                                            />
+                                                            <span className="ml-2 text-sm font-medium text-gray-900">
+                                                                {categoryName} ({selectedInCategory}/{categoryFields.length})
+                                                            </span>
+                                                        </label>
+                                                        <button
+                                                            onClick={() => toggleCategoryFields(categoryFields, allSelected)}
+                                                            className="px-2 py-1 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors duration-150"
+                                                            title={allSelected ? `Desmarcar todos de ${categoryName}` : `Marcar todos de ${categoryName}`}
+                                                        >
+                                                            {allSelected ? 'Desmarcar' : 'Marcar'} todos
+                                                        </button>
+                                                    </div>
+                                                    
+                                                    <div className="grid grid-cols-2 gap-2 ml-6">
+                                                        {categoryFields.map(field => (
+                                                            <label key={field.key} className="flex items-center cursor-pointer text-sm">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={selectedFields.includes(field.key)}
+                                                                    onChange={() => toggleField(field.key)}
+                                                                    className="h-3 w-3 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                                                                />
+                                                                <span className="ml-2 text-gray-700">
+                                                                    {field.label}
+                                                                </span>
+                                                            </label>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                    
+                                    <div className="mt-3 text-xs text-gray-500">
+                                        Total de campos selecionados: {selectedFields.length}
+                                    </div>
+                                </div>
                             </div>
                             
                             <div className="flex justify-end space-x-3">
@@ -650,7 +776,12 @@ export default function SchoolShow({ school, selectedSchool }) {
                                 </button>
                                 <button
                                     onClick={confirmExport}
-                                    className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                                    disabled={selectedFields.length === 0}
+                                    className={`px-4 py-2 text-sm font-medium text-white border border-transparent rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                                        selectedFields.length === 0 
+                                            ? 'bg-gray-400 cursor-not-allowed' 
+                                            : 'bg-green-600 hover:bg-green-700 focus:ring-green-500'
+                                    }`}
                                 >
                                     Confirmar Exportação
                                 </button>
