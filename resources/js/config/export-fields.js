@@ -508,7 +508,7 @@ export const EXPORT_FIELDS = [
     // Endereço Indicativo
     {
         key: 'cep',
-        label: 'CEP',
+        label: 'CEP Indicativo',
         path: 'outEnderecoIndicativo.outCep',
         type: 'string',
         default: false,
@@ -516,7 +516,7 @@ export const EXPORT_FIELDS = [
     },
     {
         key: 'logradouro',
-        label: 'Logradouro',
+        label: 'Logradouro Indicativo',
         path: 'outEnderecoIndicativo.outLogradouro',
         type: 'string',
         default: false,
@@ -524,7 +524,7 @@ export const EXPORT_FIELDS = [
     },
     {
         key: 'numero',
-        label: 'Número',
+        label: 'Número Indicativo',
         path: 'outEnderecoIndicativo.outNumero',
         type: 'string',
         default: false,
@@ -532,7 +532,7 @@ export const EXPORT_FIELDS = [
     },  
     {
         key: 'bairro',
-        label: 'Bairro',
+        label: 'Bairro Indicativo',
         path: 'outEnderecoIndicativo.outBairro',
         type: 'string',
         default: false,
@@ -540,7 +540,7 @@ export const EXPORT_FIELDS = [
     },
     {
         key: 'cidade',
-        label: 'Cidade',
+        label: 'Cidade Indicativo',
         path: 'outEnderecoIndicativo.outNomeCidade',
         type: 'string',
         default: false,
@@ -548,7 +548,7 @@ export const EXPORT_FIELDS = [
     },
     {
         key: 'uf_cidade',
-        label: 'UF Cidade',
+        label: 'UF Cidade Indicativo',
         path: 'outEnderecoIndicativo.outUFCidade',
         type: 'string',
         default: false,
@@ -556,7 +556,7 @@ export const EXPORT_FIELDS = [
     },
     {
         key: 'latitude',
-        label: 'Latitude',
+        label: 'Latitude Indicativo',
         path: 'outEnderecoIndicativo.outLatitude',
         type: 'string',
         default: false,
@@ -564,7 +564,7 @@ export const EXPORT_FIELDS = [
     },
     {
         key: 'longitude',
-        label: 'Longitude',
+        label: 'Longitude Indicativo',
         path: 'outEnderecoIndicativo.outLongitude',
         type: 'string',
         default: false,
@@ -584,14 +584,14 @@ export const EXPORT_FIELDS = [
             return bolsaFamilia === '1' ? 'SIM' : 'NÃO';
         }
     },
-    {
-        key: 'bolsa_familia',
-        label: 'Bolsa Família',
-        path: 'outDadosPessoais.outBolsaFamilia',
-        type: 'string',
-        default: false,
-        category: EXPORT_FIELD_CATEGORIES.SOCIAL,
-    },
+    // {
+    //     key: 'bolsa_familia',
+    //     label: 'Bolsa Família',
+    //     path: 'outDadosPessoais.outBolsaFamilia',
+    //     type: 'string',
+    //     default: false,
+    //     category: EXPORT_FIELD_CATEGORIES.SOCIAL,
+    // },
     {
         key: 'possui_internet',
         label: 'Possui Internet',
