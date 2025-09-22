@@ -15,7 +15,7 @@ class AdminUserSeeder extends Seeder
     public function run(): void
     {
         User::create([
-            'name' => 'Admin',
+            'name' => 'Jacarei',
             'email' => 'jacarei@admin.com',
             'password' => Hash::make('jacarei@2025'),
             'email_verified_at' => now(),
@@ -23,6 +23,17 @@ class AdminUserSeeder extends Seeder
             'sed_municipio_id' => '9267',
             'sed_username' => 'SME392',
             'sed_password' => 'zw28frb32x',
+        ]);
+
+        User::create([
+            'name' => 'Paraibuna',
+            'email' => 'paraibuna@admin.com',
+            'password' => Hash::make('paraibuna@2025'),
+            'email_verified_at' => now(),
+            'sed_diretoria_id' => '20206', // Mesma de taubate
+            'sed_municipio_id' => '9448',
+            'sed_username' => 'SME504',
+            'sed_password' => 'a4i3rx86',
         ]);
     }
 }

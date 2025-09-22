@@ -76,4 +76,5 @@ Route::middleware('auth')->prefix('sed-api')->name('sed-api.')->group(function (
     Route::get('/token-status', [SedApiController::class, 'getTokenStatus'])->name('token-status');
     Route::delete('/clear-token', [SedApiController::class, 'clearToken'])->name('clear-token');
     Route::get('/escolas-municipio', [SedApiController::class, 'getEscolasPorMunicipio'])->name('escolas-municipio');
+    Route::get('/diretorias', [SedApiController::class, 'getDiretorias'])->name('diretorias');
 });

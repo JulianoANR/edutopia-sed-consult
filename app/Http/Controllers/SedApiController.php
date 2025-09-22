@@ -259,4 +259,49 @@ class SedApiController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Buscar lista de diretorias de ensino estaduais
+     * Endpoint: GET /sed-api/diretorias
+     * 
+     * @return JsonResponse
+     */
+    public function getDiretorias(): JsonResponse
+    {
+        try {
+            $diretorias = $this->sedApiService->getDiretorias();
+            
+            // Debug: mostrar dados completos usando dd()
+            dd($diretorias);
+            
+            return response()->json([
+                'success' => true,
+                'data' => $diretorias,
+                'message' => 'Diretorias obtidas com sucesso'
+            ]);
+            
+        } catch (SedApiException $e) {
+            Log::error('SED API Controller: Erro ao buscar diretorias', [
+                'error' => $e->getMessage(),
+                'http_code' => $e->getHttpStatusCode()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao buscar diretorias',
+                'error' => $e->getMessage(),
+            ], $e->getHttpStatusCode());
+            
+        } catch (\Exception $e) {
+            Log::error('Unexpected error while fetching diretorias', [
+                'error' => $e->getMessage(),
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro interno do servidor',
+                'error' => 'Erro inesperado ao buscar diretorias',
+            ], 500);
+        }
+    }
 }

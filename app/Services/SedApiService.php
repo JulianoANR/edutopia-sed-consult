@@ -872,4 +872,67 @@ class SedApiService
             throw SedApiException::unexpectedError('Erro inesperado ao buscar ficha do aluno: ' . $e->getMessage());
         }
     }
+
+    /**
+     * Buscar lista de diretorias de ensino estaduais
+     * Baseado na documentação NCA101 – INTEGRAÇÃO – NCAAPI – Diretorias
+     * 
+     * @return array
+     * @throws SedApiException
+     */
+    public function getDiretorias(): array
+    {
+        try {
+            // Obter token de autenticação
+            $token = $this->getToken();
+            
+            Log::info('SED API: Buscando lista de diretorias', [
+                'endpoint' => '/DadosBasicos/Diretorias'
+            ]);
+            
+            // Fazer requisição GET para a API
+            $response = Http::timeout(config('sed.api.timeout', 30))
+                ->withHeaders([
+                    'Authorization' => 'Bearer ' . $token,
+                    'Content-Type' => 'application/json; charset=UTF-8'
+                ])
+                ->get($this->baseUrl . '/DadosBasicos/Diretorias');
+            
+            if (!$response->successful()) {
+                throw SedApiException::requestFailed(
+                    'Falha na requisição de diretorias',
+                    $response->status(),
+                    $response->body()
+                );
+            }
+            
+            $data = $response->json();
+            
+            // Verificar se há erro de negócio
+            if (!empty($data['outErro'])) {
+                throw SedApiException::businessError($data['outErro']);
+            }
+            
+            // Log da requisição bem-sucedida
+            Log::info('SED API: Diretorias obtidas com sucesso', [
+                'total_diretorias' => count($data['outDiretorias'] ?? []),
+                'processo_id' => $data['outProcessoID'] ?? null
+            ]);
+            
+            return $data;
+            
+        } catch (SedApiException $e) {
+            Log::error('SED API: Erro ao buscar diretorias', [
+                'error' => $e->getMessage(),
+                'endpoint' => '/DadosBasicos/Diretorias'
+            ]);
+            throw $e;
+        } catch (\Exception $e) {
+            Log::error('SED API: Erro inesperado ao buscar diretorias', [
+                'error' => $e->getMessage(),
+                'endpoint' => '/DadosBasicos/Diretorias'
+            ]);
+            throw SedApiException::unexpectedError('Erro inesperado ao buscar diretorias: ' . $e->getMessage());
+        }
+    }
 }
