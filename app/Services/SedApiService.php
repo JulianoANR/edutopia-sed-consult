@@ -935,4 +935,67 @@ class SedApiService
             throw SedApiException::unexpectedError('Erro inesperado ao buscar diretorias: ' . $e->getMessage());
         }
     }
+
+    /**
+     * Buscar tipos de ensino
+     * Baseado no endpoint /DadosBasicos/TipoEnsino
+     * 
+     * @return array
+     * @throws SedApiException
+     */
+    public function getTipoEnsino(): array
+    {
+        try {
+            // Obter token de autenticação
+            $token = $this->getToken();
+            
+            Log::info('SED API: Buscando tipos de ensino', [
+                'endpoint' => '/DadosBasicos/TipoEnsino'
+            ]);
+            
+            // Fazer requisição GET para a API
+            $response = Http::timeout(config('sed.api.timeout', 30))
+                ->withHeaders([
+                    'Authorization' => 'Bearer ' . $token,
+                    'Content-Type' => 'application/json; charset=UTF-8'
+                ])
+                ->get($this->baseUrl . '/DadosBasicos/TipoEnsino');
+            
+            if (!$response->successful()) {
+                throw SedApiException::requestFailed(
+                    'Falha na requisição de tipos de ensino',
+                    $response->status(),
+                    $response->body()
+                );
+            }
+            
+            $data = $response->json();
+            
+            // Verificar se há erro de negócio
+            if (!empty($data['outErro'])) {
+                throw SedApiException::businessError($data['outErro']);
+            }
+            
+            // Log da requisição bem-sucedida
+            Log::info('SED API: Tipos de ensino obtidos com sucesso', [
+                'total_tipos' => count($data['outTipoEnsino'] ?? []),
+                'processo_id' => $data['outProcessoID'] ?? null
+            ]);
+            
+            return $data;
+            
+        } catch (SedApiException $e) {
+            Log::error('SED API: Erro ao buscar tipos de ensino', [
+                'error' => $e->getMessage(),
+                'endpoint' => '/DadosBasicos/TipoEnsino'
+            ]);
+            throw $e;
+        } catch (\Exception $e) {
+            Log::error('SED API: Erro inesperado ao buscar tipos de ensino', [
+                'error' => $e->getMessage(),
+                'endpoint' => '/DadosBasicos/TipoEnsino'
+            ]);
+            throw SedApiException::unexpectedError('Erro inesperado ao buscar tipos de ensino: ' . $e->getMessage());
+        }
+    }
 }

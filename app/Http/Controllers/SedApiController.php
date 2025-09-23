@@ -304,4 +304,50 @@ class SedApiController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Buscar tipos de ensino
+     * Endpoint: GET /sed-api/tipo-ensino
+     * 
+     * @return JsonResponse
+     */
+    public function getTipoEnsino(): JsonResponse
+    {
+        try {
+            $tipoEnsino = $this->sedApiService->getTipoEnsino();
+            
+            // Debug: mostrar dados completos usando dd()
+            dd(json_encode($tipoEnsino, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+            
+            
+            return response()->json([
+                'success' => true,
+                'data' => $tipoEnsino,
+                'message' => 'Tipos de ensino obtidos com sucesso'
+            ]);
+            
+        } catch (SedApiException $e) {
+            Log::error('SED API Controller: Erro ao buscar tipos de ensino', [
+                'error' => $e->getMessage(),
+                'http_code' => $e->getHttpStatusCode()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao buscar tipos de ensino',
+                'error' => $e->getMessage(),
+            ], $e->getHttpStatusCode());
+            
+        } catch (\Exception $e) {
+            Log::error('Unexpected error while fetching tipos de ensino', [
+                'error' => $e->getMessage(),
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro interno do servidor',
+                'error' => 'Erro inesperado ao buscar tipos de ensino',
+            ], 500);
+        }
+    }
 }
