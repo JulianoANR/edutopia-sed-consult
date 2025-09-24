@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SedApiController;
+use App\Http\Controllers\TestTurmaController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -63,7 +64,7 @@ require __DIR__.'/auth.php';
 // SED API Routes (Test route without auth)
 Route::prefix('sed-api')->name('sed-api.')->group(function () {
     Route::get('/test-connection', [SedApiController::class, 'testConnection'])->name('test-connection');
-    Route::post('/consultar-turma', [SedApiController::class, 'consultarTurma'])->name('consultar-turma');
+    // Route::post('/consultar-turma', [SedApiController::class, 'consultarTurma'])->name('consultar-turma');
 });
 
 // SED API Routes (Authenticated)

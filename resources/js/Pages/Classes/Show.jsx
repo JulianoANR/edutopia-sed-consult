@@ -48,8 +48,8 @@ export default function ClassShow({ classCode, selectedSchool }) {
             // Mapear os dados da API para o formato esperado pelo componente
             const mappedClassData = {
                 code: data.outNumClasse,
-                name: `${data.outCodSerieAno}º${data.outTurma?.toUpperCase()}`,
-                grade: `${data.outCodSerieAno}º Ano`,
+                name: data.name,
+                // grade: `${data.outCodSerieAno}º Ano`,
                 shift: data.outDescricaoTurno,
                 room: data.outNumSala,
                 schedule: `${data.outHorarioInicio} - ${data.outHorarioFim}`,
@@ -232,10 +232,10 @@ export default function ClassShow({ classCode, selectedSchool }) {
                                 <span className="text-gray-500">Nome:</span>
                                 <span className="font-medium">{classData.name || 'N/A'}</span>
                             </div>
-                            <div className="flex justify-between">
+                            {/* <div className="flex justify-between">
                                 <span className="text-gray-500">Série:</span>
                                 <span className="font-medium">{classData.grade || 'N/A'}</span>
-                            </div>
+                            </div> */}
                             <div className="flex justify-between">
                                 <span className="text-gray-500">Turno:</span>
                                 <span className="font-medium">{classData.shift || 'N/A'}</span>
@@ -251,10 +251,10 @@ export default function ClassShow({ classCode, selectedSchool }) {
                         </div>
                         <div className="space-y-4">
                             <h5 className="font-medium text-gray-900 border-b pb-2">Detalhes Acadêmicos</h5>
-                            <div className="flex justify-between">
+                            {/* <div className="flex justify-between">
                                 <span className="text-gray-500">Ano Letivo:</span>
                                 <span className="font-medium">{classData.year || 'N/A'}</span>
-                            </div>
+                            </div> */}
                             <div className="flex justify-between">
                                 <span className="text-gray-500">Escola:</span>
                                 <span className="font-medium">{classData.school || 'N/A'}</span>

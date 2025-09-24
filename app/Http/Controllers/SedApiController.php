@@ -228,6 +228,18 @@ class SedApiController extends Controller
             // Chamar o serviço
             $result = $this->sedApiService->consultarTurma($inNumClasse);
 
+            $name = getNomeTurma($result['outCodTipoEnsino'], $result['outCodSerieAno']);
+
+            if (isset($result['outTurma'])) {
+                $name .= ' ' . strtoupper($result['outTurma']);
+            }
+
+            if (isset($result['outDescricaoTurno'])) {
+                $name .= ' - ' . $result['outDescricaoTurno'];
+            }
+
+            $result['name'] = $name;
+
             return response()->json([
                 'success' => true,
                 'data' => $result,

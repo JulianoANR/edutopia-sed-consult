@@ -230,6 +230,22 @@ class SchoolController extends Controller
                 $codTurno,
                 $semestre
             );
+
+            $classes = $result['outClasses'] ?? [];
+
+            foreach ($classes as &$class) {
+                $class['name'] = getNomeTurma($class['outCodTipoEnsino'], $class['outCodSerieAno']);
+
+                if (isset($class['outTurma'])) {
+                    $class['name'] .= ' ' . strtoupper($class['outTurma']);
+                }
+
+                if (isset($class['outDescricaoTurno'])) {
+                    $class['name'] .= ' - ' . $class['outDescricaoTurno'];
+                }
+            }
+
+            $result['outClasses'] = $classes;
             
             return response()->json([
                 'success' => true,
@@ -303,12 +319,24 @@ class SchoolController extends Controller
                     'message' => 'Nenhuma turma encontrada para esta escola no ano letivo informado.'
                 ], 404);
             }
-            
+
             //Formatar dados das turmas para o frontend
             $formattedClasses = array_map(function($class) {
+
+
+                $name = getNomeTurma($class['outCodTipoEnsino'], $class['outCodSerieAno']);
+
+                if (isset($class['outTurma'])) {
+                    $name .= ' ' . strtoupper($class['outTurma']);
+                }
+
+                if (isset($class['outDescricaoTurno'])) {
+                    $name .= ' - ' . $class['outDescricaoTurno'];
+                }
+
                 return [
                     'cod_turma' => $class['outNumClasse'] ?? null,
-                    'nome_turma' => ($class['outCodSerieAno'] ?? '') . '°' . ($class['outTurma'] ?? ''),
+                    'nome_turma' => $name,
                     'serie' => $class['outCodSerieAno'] ?? '',
                     'turma' => $class['outTurma'] ?? '',
                     'turno' => $class['outDescricaoTurno'] ?? '',
