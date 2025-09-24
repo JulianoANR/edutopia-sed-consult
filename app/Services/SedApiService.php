@@ -998,4 +998,68 @@ class SedApiService
             throw SedApiException::unexpectedError('Erro inesperado ao buscar tipos de ensino: ' . $e->getMessage());
         }
     }
+
+    /**
+     * Clear all SED API related caches
+     */
+    public function clearAllCaches(): void
+    {
+        try {
+            $cacheKeys = [
+                $this->tokenCacheKey,
+                'sed_api_diretorias',
+                'sed_api_tipos_ensino',
+                'sed_api_escolas_municipio',
+                'sed_api_classes_' . $this->municipioId,
+                'sed_api_students_' . $this->municipioId
+            ];
+            
+            foreach ($cacheKeys as $key) {
+                Cache::forget($key);
+            }
+            
+            Log::info('SED API: All caches cleared successfully');
+        } catch (\Exception $e) {
+            Log::warning('SED API: Failed to clear caches: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Clear user-specific SED API caches
+     */
+    public function clearUserCaches(?int $userId = null): void
+    {
+        try {
+            $userId = $userId ?? auth()->id();
+            
+            if (!$userId) {
+                return;
+            }
+            
+            $userCacheKeys = [
+                "sed_api_user_token_{$userId}",
+                "sed_api_user_data_{$userId}",
+                "sed_api_user_schools_{$userId}",
+                "sed_api_user_classes_{$userId}",
+                "sed_api_user_students_{$userId}"
+            ];
+            
+            foreach ($userCacheKeys as $key) {
+                Cache::forget($key);
+            }
+            
+            Log::info('SED API: User specific caches cleared', ['user_id' => $userId]);
+        } catch (\Exception $e) {
+            Log::warning('SED API: Failed to clear user caches: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Force token refresh by clearing token cache
+     */
+    public function forceTokenRefresh(): void
+    {
+        Cache::forget($this->tokenCacheKey);
+        Log::info('SED API: Token cache cleared, forcing refresh on next request');
+    }
 }

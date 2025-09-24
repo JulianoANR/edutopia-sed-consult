@@ -146,7 +146,12 @@ export default function ClassShow({ classCode, selectedSchool }) {
             window.URL.revokeObjectURL(url);
         } catch (error) {
             console.error('Erro ao exportar CSV:', error);
-            alert('Erro ao exportar arquivo CSV. Tente novamente.');
+            
+            // Não exibe alert se for erro 419 (CSRF Token Mismatch) 
+            // pois o interceptor já vai recarregar a página
+            if (error.response?.status !== 419) {
+                alert('Erro ao exportar arquivo CSV. Tente novamente.');
+            }
         }
         setExportLoading(false);
     };

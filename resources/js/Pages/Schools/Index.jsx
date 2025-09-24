@@ -38,7 +38,12 @@ export default function SchoolsIndex({ schools, selectedSchool, connectionStatus
             router.visit(`/schools/view/${school.outCodEscola}/${selectedRedeEnsino}`);
         } catch (error) {
             console.error('Erro ao selecionar escola:', error);
-            alert('Erro ao selecionar escola: ' + (error.response?.data?.message || error.message));
+            
+            // Não exibe alert se for erro 419 (CSRF Token Mismatch) 
+            // pois o interceptor já vai recarregar a página
+            if (error.response?.status !== 419) {
+                alert('Erro ao selecionar escola: ' + (error.response?.data?.message || error.message));
+            }
         } finally {
             setLoading(false);
         }

@@ -14,6 +14,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             \App\Http\Middleware\HandleInertiaRequests::class,
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
+            \App\Http\Middleware\ClearUserCache::class,
+            \App\Http\Middleware\RefreshCsrfToken::class,
         ]);
 
         // Exceções CSRF para rotas da API SED

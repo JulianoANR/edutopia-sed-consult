@@ -230,6 +230,12 @@ export default function SchoolShow({ school, selectedSchool }) {
         } catch (error) {
             console.error('Erro ao exportar alunos:', error);
             
+            // Não exibe alert se for erro 419 (CSRF Token Mismatch) 
+            // pois o interceptor já vai recarregar a página
+            if (error.response?.status === 419) {
+                return;
+            }
+            
             let errorMessage = 'Erro ao exportar alunos da escola';
             
             if (error.response?.data) {
@@ -312,6 +318,12 @@ export default function SchoolShow({ school, selectedSchool }) {
         } catch (error) {
             console.error('Erro ao carregar turmas:', error);
             setClasses([]);
+            
+            // Não define erro se for erro 419 (CSRF Token Mismatch) 
+            // pois o interceptor já vai recarregar a página
+            if (error.response?.status === 419) {
+                return;
+            }
             
             let errorInfo = {
                 type: 'network_error',
