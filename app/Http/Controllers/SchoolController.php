@@ -7,6 +7,9 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use App\Services\SedApiService;
+use App\Services\SedEscolasService;
+use App\Services\SedTurmasService;
+use App\Services\SedAlunosService;
 use App\Exceptions\SedApiException;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Log;
@@ -15,11 +18,21 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class SchoolController extends Controller
 {
-    protected $sedApiService;
+    protected SedApiService $sedApiService;
+    protected SedEscolasService $sedEscolasService;
+    protected SedTurmasService $sedTurmasService;
+    protected SedAlunosService $sedAlunosService;
 
-    public function __construct(SedApiService $sedApiService)
-    {
+    public function __construct(
+        SedApiService $sedApiService,
+        SedEscolasService $sedEscolasService,
+        SedTurmasService $sedTurmasService,
+        SedAlunosService $sedAlunosService
+    ) {
         $this->sedApiService = $sedApiService;
+        $this->sedEscolasService = $sedEscolasService;
+        $this->sedTurmasService = $sedTurmasService;
+        $this->sedAlunosService = $sedAlunosService;
     }
 
     /**
@@ -65,7 +78,7 @@ class SchoolController extends Controller
             }
             
             // Busca escolas por município via API SED
-            $schoolsData = $this->sedApiService->getEscolasPorMunicipio(null, null, $redeEnsinoId);
+            $schoolsData = $this->sedEscolasService->getEscolasPorMunicipio(null, null, $redeEnsinoId);
             $schools = $schoolsData['outEscolas'] ?? [];
             
             // Verifica se há uma escola selecionada na sessão
@@ -100,7 +113,7 @@ class SchoolController extends Controller
     {
         try {
             // Busca todas as escolas e filtra pela específica
-            $schoolsData = $this->sedApiService->getEscolasPorMunicipio(null, null, $redeEnsinoId);
+            $schoolsData = $this->sedEscolasService->getEscolasPorMunicipio(null, null, $redeEnsinoId);
             $schools = $schoolsData['outEscolas'] ?? [];
             
             // Filtra a escola pelo código
@@ -213,7 +226,7 @@ class SchoolController extends Controller
                 'cod_turno' => 'nullable|string',
                 'semestre' => 'nullable|string'
             ]);
-            
+
             $anoLetivo = $request->input('ano_letivo');
             $codEscola = $request->input('cod_escola');
             $codTipoEnsino = $request->input('cod_tipo_ensino');
@@ -222,7 +235,7 @@ class SchoolController extends Controller
             $semestre = $request->input('semestre');
             
             // Buscar classes via SED API Service
-            $result = $this->sedApiService->getRelacaoClasses(
+            $result = $this->sedTurmasService->getRelacaoClasses(
                 $anoLetivo, 
                 $codEscola,
                 $codTipoEnsino,
@@ -230,6 +243,11 @@ class SchoolController extends Controller
                 $codTurno,
                 $semestre
             );
+
+            return response()->json([
+                'success' => true,
+                'data' => $result,
+            ]);
 
             $classes = $result['outClasses'] ?? [];
 
@@ -244,8 +262,6 @@ class SchoolController extends Controller
                     $class['name'] .= ' - ' . $class['outDescricaoTurno'];
                 }
             }
-
-            $result['outClasses'] = $classes;
             
             return response()->json([
                 'success' => true,
@@ -306,7 +322,7 @@ class SchoolController extends Controller
                 'ano_letivo' => $anoLetivo
             ]);
             
-            $classesResult = $this->sedApiService->getRelacaoClasses(
+            $classesResult = $this->sedTurmasService->getRelacaoClasses(
                 $anoLetivo,
                 $codEscola
             );
@@ -320,23 +336,11 @@ class SchoolController extends Controller
                 ], 404);
             }
 
-            //Formatar dados das turmas para o frontend
+            //Formatar dados das turmas para o frontend (usando nome_turma já padronizado pelo serviço)
             $formattedClasses = array_map(function($class) {
-
-
-                $name = getNomeTurma($class['outCodTipoEnsino'], $class['outCodSerieAno']);
-
-                if (isset($class['outTurma'])) {
-                    $name .= ' ' . strtoupper($class['outTurma']);
-                }
-
-                if (isset($class['outDescricaoTurno'])) {
-                    $name .= ' - ' . $class['outDescricaoTurno'];
-                }
-
                 return [
                     'cod_turma' => $class['outNumClasse'] ?? null,
-                    'nome_turma' => $name,
+                    'nome_turma' => $class['nome_turma'] ?? '',
                     'serie' => $class['outCodSerieAno'] ?? '',
                     'turma' => $class['outTurma'] ?? '',
                     'turno' => $class['outDescricaoTurno'] ?? '',
@@ -424,7 +428,7 @@ class SchoolController extends Controller
             ]);
             
             // Buscar alunos da turma
-            $studentsResult = $this->sedApiService->consultarTurma($codTurma);
+            $studentsResult = $this->sedTurmasService->consultarTurma($codTurma);
             $students = $studentsResult['outAlunos'] ?? [];
 
             if (empty($students)) {
@@ -454,7 +458,7 @@ class SchoolController extends Controller
                 
                 try {
                     // Buscar ficha completa do aluno
-                    $studentDetails = $this->sedApiService->getStudentProfile([
+                    $studentDetails = $this->sedAlunosService->getStudentProfile([
                         'inNumRA' => $numRA,
                         'inDigitoRA' => $digitoRA,
                         'inSiglaUFRA' => $ufRA
@@ -636,7 +640,7 @@ class SchoolController extends Controller
             ]);
             
             // 1. Buscar todas as turmas da escola
-            $classesResult = $this->sedApiService->getRelacaoClasses(
+            $classesResult = $this->sedTurmasService->getRelacaoClasses(
                 $anoLetivo,
                 $codEscola
             );
@@ -668,7 +672,7 @@ class SchoolController extends Controller
                 
                 try {
                     // Buscar alunos da turma usando consultarTurma
-                    $studentsResult = $this->sedApiService->consultarTurma($codTurma);
+                    $studentsResult = $this->sedTurmasService->consultarTurma($codTurma);
                     $students = $studentsResult['outAlunos'] ?? [];
 
                     Log::info('Alunos encontrados na turma', [
@@ -689,7 +693,7 @@ class SchoolController extends Controller
                         
                         try {
                             // Buscar ficha completa do aluno
-                            $studentDetails = $this->sedApiService->getStudentProfile([
+                            $studentDetails = $this->sedAlunosService->getStudentProfile([
                                 'inNumRA' => $numRA,
                                 'inDigitoRA' => $digitoRA,
                                 'inSiglaUFRA' => $ufRA

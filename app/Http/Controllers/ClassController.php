@@ -7,12 +7,20 @@ use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 use App\Services\SedApiService;
+use App\Services\SedAlunosService;
 use App\Exports\StudentsExport;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
 
 class ClassController extends Controller
 {
+    protected SedAlunosService $sedAlunosService;
+
+    public function __construct(SedAlunosService $sedAlunosService)
+    {
+        $this->sedAlunosService = $sedAlunosService;
+    }
+
     /**
      * Display the specified class.
      */
@@ -53,7 +61,6 @@ class ClassController extends Controller
             }
             
             // Buscar dados completos de cada aluno
-            $sedApiService = new SedApiService();
             $completeStudentsData = [];
             
             foreach ($students as $student) {
@@ -67,7 +74,7 @@ class ClassController extends Controller
                         
                         Log::info('Processando RA', ['ra_original' => $student['ra'], 'ra_processado' => $raNumber]);
                         
-                        $studentProfile = $sedApiService->getStudentProfile([
+                        $studentProfile = $this->sedAlunosService->getStudentProfile([
                             'inNumRA' => $raNumber,
                             'inDigitoRA' => $digit,
                             'inSiglaUFRA' => 'SP'

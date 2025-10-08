@@ -3,6 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Services\SedApiService;
+use App\Services\SedEscolasService;
+use App\Services\SedTurmasService;
+use App\Services\SedDadosBasicosService;
 use App\Exceptions\SedApiException;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -11,10 +14,20 @@ use Illuminate\Support\Facades\Log;
 class SedApiController extends Controller
 {
     protected SedApiService $sedApiService;
+    protected SedEscolasService $sedEscolasService;
+    protected SedTurmasService $sedTurmasService;
+    protected SedDadosBasicosService $sedDadosBasicosService;
 
-    public function __construct(SedApiService $sedApiService)
-    {
+    public function __construct(
+        SedApiService $sedApiService,
+        SedEscolasService $sedEscolasService,
+        SedTurmasService $sedTurmasService,
+        SedDadosBasicosService $sedDadosBasicosService
+    ) {
         $this->sedApiService = $sedApiService;
+        $this->sedEscolasService = $sedEscolasService;
+        $this->sedTurmasService = $sedTurmasService;
+        $this->sedDadosBasicosService = $sedDadosBasicosService;
     }
 
     /**
@@ -178,7 +191,7 @@ class SedApiController extends Controller
             $codRedeEnsino = (int) $codRedeEnsino;
             
             // Chamar o serviço
-            $result = $this->sedApiService->getEscolasPorMunicipio($codDiretoria, $codMunicipio, $codRedeEnsino);
+            $result = $this->sedEscolasService->getEscolasPorMunicipio($codDiretoria, $codMunicipio, $codRedeEnsino);
             
             return response()->json([
                 'success' => true,
@@ -226,7 +239,7 @@ class SedApiController extends Controller
             $inNumClasse = $request->input('inNumClasse');
             
             // Chamar o serviço
-            $result = $this->sedApiService->consultarTurma($inNumClasse);
+            $result = $this->sedTurmasService->consultarTurma($inNumClasse);
 
             $name = getNomeTurma($result['outCodTipoEnsino'], $result['outCodSerieAno']);
 
@@ -281,10 +294,7 @@ class SedApiController extends Controller
     public function getDiretorias(): JsonResponse
     {
         try {
-            $diretorias = $this->sedApiService->getDiretorias();
-            
-            // Debug: mostrar dados completos usando dd()
-            dd($diretorias);
+            $diretorias = $this->sedDadosBasicosService->getDiretorias();
             
             return response()->json([
                 'success' => true,
@@ -326,11 +336,7 @@ class SedApiController extends Controller
     public function getTipoEnsino(): JsonResponse
     {
         try {
-            $tipoEnsino = $this->sedApiService->getTipoEnsino();
-            
-            // Debug: mostrar dados completos usando dd()
-            dd(json_encode($tipoEnsino, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-            
+            $tipoEnsino = $this->sedDadosBasicosService->getTipoEnsino();
             
             return response()->json([
                 'success' => true,

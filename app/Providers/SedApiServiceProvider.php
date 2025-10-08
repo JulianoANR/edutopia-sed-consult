@@ -5,6 +5,10 @@ namespace App\Providers;
 use App\Services\SedApiService;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Contracts\Foundation\Application;
+use App\Services\SedEscolasService;
+use App\Services\SedTurmasService;
+use App\Services\SedAlunosService;
+use App\Services\SedDadosBasicosService;
 
 class SedApiServiceProvider extends ServiceProvider
 {
@@ -22,6 +26,20 @@ class SedApiServiceProvider extends ServiceProvider
 
         // Register an alias for easier access
         $this->app->alias(SedApiService::class, 'sed-api');
+
+        // Register new specific SED services as singletons
+        $this->app->singleton(SedEscolasService::class, function (Application $app) {
+            return new SedEscolasService($app->make(SedApiService::class));
+        });
+        $this->app->singleton(SedTurmasService::class, function (Application $app) {
+            return new SedTurmasService($app->make(SedApiService::class));
+        });
+        $this->app->singleton(SedAlunosService::class, function (Application $app) {
+            return new SedAlunosService($app->make(SedApiService::class));
+        });
+        $this->app->singleton(SedDadosBasicosService::class, function (Application $app) {
+            return new SedDadosBasicosService($app->make(SedApiService::class));
+        });
     }
 
     /**
@@ -53,6 +71,10 @@ class SedApiServiceProvider extends ServiceProvider
         return [
             SedApiService::class,
             'sed-api',
+            SedEscolasService::class,
+            SedTurmasService::class,
+            SedAlunosService::class,
+            SedDadosBasicosService::class,
         ];
     }
 }

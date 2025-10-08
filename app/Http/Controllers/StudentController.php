@@ -5,15 +5,18 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use App\Services\SedApiService;
+use App\Services\SedAlunosService;
 use Illuminate\Support\Facades\Log;
 
 class StudentController extends Controller
 {
-    protected $sedApiService;
+    protected SedApiService $sedApiService;
+    protected SedAlunosService $sedAlunosService;
 
-    public function __construct(SedApiService $sedApiService)
+    public function __construct(SedApiService $sedApiService, SedAlunosService $sedAlunosService)
     {
         $this->sedApiService = $sedApiService;
+        $this->sedAlunosService = $sedAlunosService;
     }
 
     /**
@@ -26,7 +29,7 @@ class StudentController extends Controller
             $raData = $this->parseStudentRa($studentRa);
             
             // Buscar dados do aluno na API SED
-            $studentData = $this->sedApiService->getStudentProfile($raData);
+            $studentData = $this->sedAlunosService->getStudentProfile($raData);
                 
             return Inertia::render('Students/Show', [
                 'studentRa' => $studentRa,

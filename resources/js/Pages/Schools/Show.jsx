@@ -283,7 +283,7 @@ export default function SchoolShow({ school, selectedSchool }) {
                 const formattedClasses = response.data.data.outClasses.map((classItem, index) => ({
                     id: classItem.outNumClasse,
                     // name: `${classItem.outCodSerieAno}º ${classItem.outTurma}`,
-                    name: classItem.name ?? ' - ',
+                    name: classItem.nome_turma ?? ' - ',
                     grade: `${classItem.outDescTipoEnsino}`,
                     shift: classItem.outDescricaoTurno,
                     students_count: classItem.outQtdAtual,
