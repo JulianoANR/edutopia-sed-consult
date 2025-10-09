@@ -103,6 +103,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('classes')->name('classes.')->group(function () {
         Route::get('/{classCode}', [ClassController::class, 'show'])->name('show');
         Route::post('/export-excel', [ClassController::class, 'exportExcel'])->name('export-excel');
+
+        // Attendance routes
+        Route::get('/{classCode}/attendance', [\App\Http\Controllers\AttendanceController::class, 'show'])->name('attendance.show');
+        Route::get('/{classCode}/attendance/data', [\App\Http\Controllers\AttendanceController::class, 'getAttendance'])->name('attendance.data');
+        Route::post('/{classCode}/attendance/save', [\App\Http\Controllers\AttendanceController::class, 'saveAttendance'])->name('attendance.save');
     });
     
     // ----------------------------------------------------------------------------
