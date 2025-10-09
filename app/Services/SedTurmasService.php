@@ -130,6 +130,16 @@ class SedTurmasService
             throw SedApiException::businessError($data['outErro']);
         }
 
+        // Padronizar nome da turma no objeto retornado, similar à getRelacaoClasses
+        $nome = \getNomeTurma($data['outCodTipoEnsino'] ?? null, $data['outCodSerieAno'] ?? null) ?? '';
+        if (isset($data['outTurma']) && $data['outTurma'] !== '') {
+            $nome .= ' ' . strtoupper($data['outTurma']);
+        }
+        if (isset($data['outDescricaoTurno']) && $data['outDescricaoTurno'] !== '') {
+            $nome .= ' - ' . $data['outDescricaoTurno'];
+        }
+        $data['nome_turma'] = trim($nome);
+
         Log::info('SED API: Turma consultada com sucesso', [
             'classe' => $inNumClasse,
             'escola' => $data['outCodEscola'] ?? null,

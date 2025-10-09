@@ -51,6 +51,7 @@ class AttendanceController extends Controller
 
         // Buscar dados da turma e alunos via SED
         $classData = $this->sedTurmasService->consultarTurma($classCode);
+
         $alunos = $classData['outAlunos'] ?? [];
 
         // Mapear RA completo e nome
@@ -88,7 +89,7 @@ class AttendanceController extends Controller
                 'date' => $date,
                 'class' => [
                     'code' => $classCode,
-                    'name' => $classData['outDescTurma'] ?? $classData['nome_turma'] ?? null,
+                    'name' => $classData['nome_turma'] ?? null,
                     'shift' => $classData['outDescricaoTurno'] ?? null,
                     'school' => $classData['outDescNomeAbrevEscola'] ?? null,
                 ],

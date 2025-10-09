@@ -129,8 +129,8 @@ export default function AttendancePage({ classCode, selectedSchool, today }) {
                   <div className="mb-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h3 className="text-lg font-semibold">{classInfo?.nome_turma || 'Turma'}</h3>
-                        <p className="text-sm text-gray-600">Turno: {classInfo?.shift} • Sala: {classInfo?.room}</p>
+                        <h3 className="text-lg font-semibold">{classInfo?.name || 'Turma'}</h3>
+                        {/* <p className="text-sm text-gray-600">Turno: {classInfo?.shift} • Sala: {classInfo?.room}</p> */}
                       </div>
                       {editable && (
                         <button
