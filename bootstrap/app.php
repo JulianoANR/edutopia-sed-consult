@@ -18,6 +18,11 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\RefreshCsrfToken::class,
         ]);
 
+        // Register route middleware aliases
+        $middleware->alias([
+            'role' => \App\Http\Middleware\RoleMiddleware::class,
+        ]);
+
         // Exceções CSRF para rotas da API SED
         $middleware->validateCsrfTokens(except: [
             'sed-api/*',

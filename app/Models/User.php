@@ -21,6 +21,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role',
         'sed_diretoria_id',
         'sed_municipio_id',
         'sed_username',
@@ -49,5 +50,25 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    public function isGestor(): bool
+    {
+        return $this->role === 'gestor';
+    }
+
+    public function isProfessor(): bool
+    {
+        return $this->role === 'professor';
+    }
+
+    public function links()
+    {
+        return $this->hasMany(\App\Models\TeacherClassDisciplineLink::class);
     }
 }

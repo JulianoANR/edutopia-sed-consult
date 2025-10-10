@@ -30,6 +30,22 @@ export default function AuthenticatedLayout({ header, children }) {
                                 >
                                     Escolas
                                 </NavLink>
+                                {['admin','gestor'].includes(user.role) && (
+                                    <>
+                                        <NavLink
+                                            href={route('disciplines.index')}
+                                            active={route().current('disciplines.index')}
+                                        >
+                                            Disciplinas
+                                        </NavLink>
+                                        <NavLink
+                                            href={route('teacher_links.index')}
+                                            active={route().current('teacher_links.index')}
+                                        >
+                                            Vínculos
+                                        </NavLink>
+                                    </>
+                                )}
                             </div>
                         </div>
 
@@ -134,6 +150,22 @@ export default function AuthenticatedLayout({ header, children }) {
                         >
                             Dashboard
                         </ResponsiveNavLink>
+                        {['admin','gestor'].includes(user.role) && (
+                            <>
+                                <ResponsiveNavLink
+                                    href={route('disciplines.index')}
+                                    active={route().current('disciplines.index')}
+                                >
+                                    Disciplinas
+                                </ResponsiveNavLink>
+                                <ResponsiveNavLink
+                                    href={route('teacher_links.index')}
+                                    active={route().current('teacher_links.index')}
+                                >
+                                    Vínculos
+                                </ResponsiveNavLink>
+                            </>
+                        )}
                     </div>
 
                     <div className="border-t border-gray-200 pb-1 pt-4">

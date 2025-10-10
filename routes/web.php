@@ -96,6 +96,21 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/get-class-students', [SchoolController::class, 'getClassStudentsForExport'])->name('get-class-students');
         Route::post('/export-collected-students', [SchoolController::class, 'exportCollectedStudents'])->name('export-collected-students');
     });
+
+    // ----------------------------------------------------------------------------
+    // MANAGEMENT ROUTES (admin/gestor)
+    // ----------------------------------------------------------------------------
+    Route::middleware(['role:admin,gestor'])->group(function () {
+        Route::get('/disciplines', [\App\Http\Controllers\DisciplineController::class, 'index'])->name('disciplines.index');
+        Route::post('/disciplines', [\App\Http\Controllers\DisciplineController::class, 'store'])->name('disciplines.store');
+        Route::put('/disciplines/{discipline}', [\App\Http\Controllers\DisciplineController::class, 'update'])->name('disciplines.update');
+        Route::delete('/disciplines/{discipline}', [\App\Http\Controllers\DisciplineController::class, 'destroy'])->name('disciplines.destroy');
+
+        Route::get('/teacher-links', [\App\Http\Controllers\TeacherLinkController::class, 'index'])->name('teacher_links.index');
+        Route::post('/teacher-links', [\App\Http\Controllers\TeacherLinkController::class, 'store'])->name('teacher_links.store');
+        Route::put('/teacher-links/{link}', [\App\Http\Controllers\TeacherLinkController::class, 'update'])->name('teacher_links.update');
+        Route::delete('/teacher-links/{link}', [\App\Http\Controllers\TeacherLinkController::class, 'destroy'])->name('teacher_links.destroy');
+    });
     
     // ----------------------------------------------------------------------------
     // CLASS ROUTES
@@ -106,8 +121,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         // Attendance routes
         Route::get('/{classCode}/attendance', [\App\Http\Controllers\AttendanceController::class, 'show'])->name('attendance.show');
-        Route::get('/{classCode}/attendance/data', [\App\Http\Controllers\AttendanceController::class, 'getAttendance'])->name('attendance.data');
-        Route::post('/{classCode}/attendance/save', [\App\Http\Controllers\AttendanceController::class, 'saveAttendance'])->name('attendance.save');
+Route::get('/{classCode}/attendance/data', [\App\Http\Controllers\AttendanceController::class, 'getAttendance'])->name('attendance.data');
+Route::post('/{classCode}/attendance/save', [\App\Http\Controllers\AttendanceController::class, 'saveAttendance'])->name('attendance.save');
+
+
     });
     
     // ----------------------------------------------------------------------------

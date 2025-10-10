@@ -3,7 +3,7 @@ import { Head, Link, usePage } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 
-export default function AttendancePage({ classCode, selectedSchool, today }) {
+export default function AttendancePage({ classCode, selectedSchool, today, disciplines = [] }) {
   const [date, setDate] = useState(today);
   const [classInfo, setClassInfo] = useState(null);
   const [students, setStudents] = useState([]);
@@ -11,12 +11,13 @@ export default function AttendancePage({ classCode, selectedSchool, today }) {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  const [disciplineId, setDisciplineId] = useState(disciplines?.[0]?.id || null);
 
-  const loadData = async (targetDate) => {
+  const loadData = async (targetDate, targetDisciplineId = disciplineId) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await axios.get(`/classes/${classCode}/attendance/data`, { params: { date: targetDate } });
+      const res = await axios.get(`/classes/${classCode}/attendance/data`, { params: { date: targetDate, discipline_id: targetDisciplineId } });
       const { data } = res.data;
       setClassInfo(data.class);
       setEditable(data.editable);
@@ -32,8 +33,8 @@ export default function AttendancePage({ classCode, selectedSchool, today }) {
   };
 
   useEffect(() => {
-    loadData(date);
-  }, [date]);
+    loadData(date, disciplineId);
+  }, [date, disciplineId]);
 
   const handleStatusChange = (ra, status) => {
     setStudents(prev => prev.map(s => s.ra === ra ? { ...s, status } : s));
@@ -64,11 +65,12 @@ export default function AttendancePage({ classCode, selectedSchool, today }) {
     try {
       const payload = {
         date,
+        discipline_id: disciplineId || null,
         records: students.map(s => ({ ra: s.ra, status: s.status || null, note: s.note || null }))
       };
       const res = await axios.post(`/classes/${classCode}/attendance/save`, payload);
       if (res.data.success) {
-        await loadData(date);
+        await loadData(date, disciplineId);
       }
     } catch (e) {
       setError(e.response?.data?.message || e.message || 'Erro ao salvar frequência');
@@ -106,6 +108,16 @@ export default function AttendancePage({ classCode, selectedSchool, today }) {
               onChange={(e) => setDate(e.target.value)}
               className="border rounded-md px-3 py-2 text-sm"
             />
+            <select
+              value={disciplineId || ''}
+              onChange={(e) => setDisciplineId(e.target.value ? Number(e.target.value) : null)}
+              className="border rounded-md px-3 py-2 text-sm"
+              title="Selecionar disciplina"
+            >
+              {disciplines.map(d => (
+                <option key={d.id} value={d.id}>{d.name}</option>
+              ))}
+            </select>
             <span className={`text-sm px-3 py-1 rounded-full ${editable ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
               {editable ? 'Editável (hoje)' : 'Bloqueado (dia passado)'}
             </span>

@@ -32,10 +32,44 @@ class AttendanceController extends Controller
                 ->with('error', 'Você precisa selecionar uma escola primeiro.');
         }
 
+        // Disciplinas disponíveis para o usuário nesta turma
+        $user = $request->user();
+        $links = \App\Models\TeacherClassDisciplineLink::with('discipline')
+            ->where('user_id', $user->id)
+            ->where('class_code', $classCode)
+            ->get();
+
+        if ($links->isEmpty()) {
+            return redirect()->route('classes.show', $classCode)
+                ->with('error', 'Você não tem acesso a esta turma.');
+        }
+
+        // Se tiver acesso total à turma, listar todas as disciplinas do sistema
+        if ($links->contains(fn($l) => (bool)$l->full_access)) {
+            $availableDisciplines = \App\Models\Discipline::orderBy('name')
+                ->get(['id','name','code'])
+                ->map(fn($d) => ['id' => $d->id, 'name' => $d->name, 'code' => $d->code])
+                ->values();
+        } else {
+            // Caso contrário, listar apenas as disciplinas vinculadas
+            $availableDisciplines = $links
+                ->map(function($link){
+                    return [
+                        'id' => $link->discipline?->id,
+                        'name' => $link->discipline?->name ?? '',
+                        'code' => $link->discipline?->code,
+                    ];
+                })
+                ->filter(fn($d) => !empty($d['id']))
+                ->unique('id')
+                ->values();
+        }
+
         return Inertia::render('Classes/Attendance', [
             'classCode' => $classCode,
             'selectedSchool' => $selectedSchool,
             'today' => Carbon::today()->toDateString(),
+            'disciplines' => $availableDisciplines,
         ]);
     }
 
@@ -47,6 +81,26 @@ class AttendanceController extends Controller
         $date = $request->query('date');
         if (!$date) {
             $date = Carbon::today()->toDateString();
+        }
+
+        $disciplineId = $request->query('discipline_id');
+        // Validar acesso do professor à disciplina/turma via TeacherClassDisciplineLink
+        $user = $request->user();
+        $links = \App\Models\TeacherClassDisciplineLink::where('user_id', $user->id)
+            ->where('class_code', $classCode)
+            ->get();
+        if ($links->isEmpty()) {
+            return response()->json(['success' => false, 'message' => 'Você não tem acesso a esta turma.'], 403);
+        }
+        $hasFullAccess = $links->contains(fn($l) => (bool)$l->full_access);
+        if (!$hasFullAccess) {
+            if (empty($disciplineId)) {
+                return response()->json(['success' => false, 'message' => 'Disciplina obrigatória para consultar frequência.'], 422);
+            }
+            $allowedDisciplineIds = $links->pluck('discipline_id')->filter()->unique()->values();
+            if (!$allowedDisciplineIds->contains((int)$disciplineId)) {
+                return response()->json(['success' => false, 'message' => 'Você não tem acesso a esta disciplina nesta turma.'], 403);
+            }
         }
 
         // Buscar dados da turma e alunos via SED
@@ -66,6 +120,7 @@ class AttendanceController extends Controller
 
         // Buscar registros existentes no banco
         $existing = AttendanceRecord::where('class_code', $classCode)
+            ->when($disciplineId, fn($q) => $q->where('discipline_id', $disciplineId))
             ->whereDate('date', $date)
             ->get()
             ->keyBy('student_ra');
@@ -106,6 +161,7 @@ class AttendanceController extends Controller
     {
         $validated = $request->validate([
             'date' => 'required|date',
+            'discipline_id' => 'nullable|exists:disciplines,id',
             'records' => 'required|array',
             'records.*.ra' => 'required|string',
             'records.*.status' => 'nullable|in:present,absent,justified',
@@ -120,7 +176,27 @@ class AttendanceController extends Controller
             ], 403);
         }
 
-        $userId = $request->user()->id;
+        $disciplineId = $validated['discipline_id'] ?? null;
+        // Validar acesso do professor à disciplina/turma via TeacherClassDisciplineLink
+        $user = $request->user();
+        $links = \App\Models\TeacherClassDisciplineLink::where('user_id', $user->id)
+            ->where('class_code', $classCode)
+            ->get();
+        if ($links->isEmpty()) {
+            return response()->json(['success' => false, 'message' => 'Você não tem acesso a esta turma.'], 403);
+        }
+        $hasFullAccess = $links->contains(fn($l) => (bool)$l->full_access);
+        if (!$hasFullAccess) {
+            if (empty($disciplineId)) {
+                return response()->json(['success' => false, 'message' => 'Disciplina obrigatória para salvar frequência.'], 422);
+            }
+            $allowedDisciplineIds = $links->pluck('discipline_id')->filter()->unique()->values();
+            if (!$allowedDisciplineIds->contains((int)$disciplineId)) {
+                return response()->json(['success' => false, 'message' => 'Você não tem acesso a esta disciplina nesta turma.'], 403);
+            }
+        }
+
+        $userId = $user->id;
 
         foreach ($validated['records'] as $rec) {
             if (empty($rec['status']) && empty($rec['note'])) {
@@ -128,6 +204,7 @@ class AttendanceController extends Controller
                 AttendanceRecord::where('class_code', $classCode)
                     ->whereDate('date', $date)
                     ->where('student_ra', $rec['ra'])
+                    ->when($disciplineId, fn($q) => $q->where('discipline_id', $disciplineId))
                     ->delete();
                 continue;
             }
@@ -137,6 +214,7 @@ class AttendanceController extends Controller
                     'class_code' => $classCode,
                     'date' => $date->toDateString(),
                     'student_ra' => $rec['ra'],
+                    'discipline_id' => $disciplineId,
                 ],
                 [
                     'status' => $rec['status'],

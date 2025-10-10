@@ -5,22 +5,21 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class AttendanceRecord extends Model
+class TeacherClassDisciplineLink extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'class_code',
-        'date',
-        'student_ra',
-        'discipline_id',
-        'status',
-        'note',
         'user_id',
+        'discipline_id',
+        'class_code',
+        'class_name',
+        'school_year',
+        'full_access',
     ];
 
     protected $casts = [
-        'date' => 'date',
+        'full_access' => 'boolean',
     ];
 
     public function user()
@@ -30,6 +29,6 @@ class AttendanceRecord extends Model
 
     public function discipline()
     {
-        return $this->belongsTo(\App\Models\Discipline::class);
+        return $this->belongsTo(Discipline::class);
     }
 }
