@@ -34,18 +34,19 @@ class AttendanceController extends Controller
 
         // Disciplinas disponíveis para o usuário nesta turma
         $user = $request->user();
+        $isAdmin = ($user->role ?? null) === 'admin';
         $links = \App\Models\TeacherClassDisciplineLink::with('discipline')
             ->where('user_id', $user->id)
             ->where('class_code', $classCode)
             ->get();
 
-        if ($links->isEmpty()) {
+        if (!$isAdmin && $links->isEmpty()) {
             return redirect()->route('classes.show', $classCode)
                 ->with('error', 'Você não tem acesso a esta turma.');
         }
 
-        // Se tiver acesso total à turma, listar todas as disciplinas do sistema
-        if ($links->contains(fn($l) => (bool)$l->full_access)) {
+        // Se for admin ou tiver acesso total à turma, listar todas as disciplinas do sistema
+        if ($isAdmin || $links->contains(fn($l) => (bool)$l->full_access)) {
             $availableDisciplines = \App\Models\Discipline::orderBy('name')
                 ->get(['id','name','code'])
                 ->map(fn($d) => ['id' => $d->id, 'name' => $d->name, 'code' => $d->code])
@@ -86,13 +87,14 @@ class AttendanceController extends Controller
         $disciplineId = $request->query('discipline_id');
         // Validar acesso do professor à disciplina/turma via TeacherClassDisciplineLink
         $user = $request->user();
+        $isAdmin = ($user->role ?? null) === 'admin';
         $links = \App\Models\TeacherClassDisciplineLink::where('user_id', $user->id)
             ->where('class_code', $classCode)
             ->get();
-        if ($links->isEmpty()) {
+        if (!$isAdmin && $links->isEmpty()) {
             return response()->json(['success' => false, 'message' => 'Você não tem acesso a esta turma.'], 403);
         }
-        $hasFullAccess = $links->contains(fn($l) => (bool)$l->full_access);
+        $hasFullAccess = $isAdmin || $links->contains(fn($l) => (bool)$l->full_access);
         if (!$hasFullAccess) {
             if (empty($disciplineId)) {
                 return response()->json(['success' => false, 'message' => 'Disciplina obrigatória para consultar frequência.'], 422);
@@ -179,13 +181,14 @@ class AttendanceController extends Controller
         $disciplineId = $validated['discipline_id'] ?? null;
         // Validar acesso do professor à disciplina/turma via TeacherClassDisciplineLink
         $user = $request->user();
+        $isAdmin = ($user->role ?? null) === 'admin';
         $links = \App\Models\TeacherClassDisciplineLink::where('user_id', $user->id)
             ->where('class_code', $classCode)
             ->get();
-        if ($links->isEmpty()) {
+        if (!$isAdmin && $links->isEmpty()) {
             return response()->json(['success' => false, 'message' => 'Você não tem acesso a esta turma.'], 403);
         }
-        $hasFullAccess = $links->contains(fn($l) => (bool)$l->full_access);
+        $hasFullAccess = $isAdmin || $links->contains(fn($l) => (bool)$l->full_access);
         if (!$hasFullAccess) {
             if (empty($disciplineId)) {
                 return response()->json(['success' => false, 'message' => 'Disciplina obrigatória para salvar frequência.'], 422);

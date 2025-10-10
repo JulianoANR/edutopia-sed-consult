@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
         // User::factory(10)->create();
         $this->call(AdminUserSeeder::class);
         $this->call(ProfessorUserSeeder::class);
+        $this->call(HomologationDemoSeeder::class);
 
         User::updateOrCreate(
             ['email' => 'test@example.com'],

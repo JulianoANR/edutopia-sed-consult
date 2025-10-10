@@ -121,8 +121,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         // Attendance routes
         Route::get('/{classCode}/attendance', [\App\Http\Controllers\AttendanceController::class, 'show'])->name('attendance.show');
-Route::get('/{classCode}/attendance/data', [\App\Http\Controllers\AttendanceController::class, 'getAttendance'])->name('attendance.data');
-Route::post('/{classCode}/attendance/save', [\App\Http\Controllers\AttendanceController::class, 'saveAttendance'])->name('attendance.save');
+        Route::get('/{classCode}/attendance/data', [\App\Http\Controllers\AttendanceController::class, 'getAttendance'])->name('attendance.data');
+        Route::post('/{classCode}/attendance/save', [\App\Http\Controllers\AttendanceController::class, 'saveAttendance'])->name('attendance.save');
 
 
     });
