@@ -13,11 +13,15 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        // Ordem: Tenants -> SuperAdmin -> Users por role
+        $this->call(TenantSeeder::class);
+        $this->call(SuperAdminUserSeeder::class);
         $this->call(AdminUserSeeder::class);
-        $this->call(ProfessorUserSeeder::class);
+        
+        // Seeders de homologação/demonstração (opcional)
         $this->call(HomologationDemoSeeder::class);
 
+        // Usuário de teste (gestor genérico)
         User::updateOrCreate(
             ['email' => 'test@example.com'],
             [
@@ -25,6 +29,7 @@ class DatabaseSeeder extends Seeder
                 'password' => bcrypt('password'),
                 'email_verified_at' => now(),
                 'role' => 'gestor',
+                'tenant_id' => \App\Models\Tenant::query()->value('id'),
             ]
         );
     }

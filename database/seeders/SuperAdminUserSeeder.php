@@ -2,11 +2,12 @@
 
 namespace Database\Seeders;
 
+use App\Models\Tenant;
 use Illuminate\Database\Seeder;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 
-class ProfessorUserSeeder extends Seeder
+class SuperAdminUserSeeder extends Seeder
 {
     /**
      * Run the database seeds.
@@ -14,13 +15,13 @@ class ProfessorUserSeeder extends Seeder
     public function run(): void
     {
         User::updateOrCreate(
-            ['email' => 'professor@edutopia.com'],
+            ['email' => 'superadmin@edutopia.com'],
             [
-                'name' => 'Professor Demo',
-                'password' => Hash::make('professor@2025'),
+                'name' => 'Super Admin',
+                'password' => Hash::make('superadmin@2025'),
                 'email_verified_at' => now(),
-                'role' => 'professor',
-                'tenant_id' => \App\Models\Tenant::query()->value('id'),
+                'role' => 'super_admin',
+                'tenant_id' => Tenant::first()->id,
             ]
         );
     }

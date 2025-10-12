@@ -24,20 +24,27 @@ class SedApiService
         $this->baseUrl = config('sed.api.url');
         $this->redeEnsinoCod = config('sed.api.rede_ensino_cod');
         
-        // Get user data from authenticated user
+        // Get credentials from tenant of authenticated user; require tenant when user exists
         $user = auth()->user();
-        
+
         if ($user) {
-            $this->username = $user->sed_username;
-            $this->password = $user->sed_password;
-            $this->diretoriaId = (int) $user->sed_diretoria_id;
-            $this->municipioId = (int) $user->sed_municipio_id;
+            if (!$user->tenant) {
+                throw SedApiException::configurationError('Authenticated user has no tenant associated');
+            }
+            $tenant = $user->tenant;
+            $this->username = $tenant->sed_username;
+            $this->password = decrypt($tenant->sed_password_encrypted);
+            $this->diretoriaId = (int) $tenant->diretoria_id;
+            $this->municipioId = (int) $tenant->municipio_id;
+            $this->redeEnsinoCod = (int) ($tenant->rede_ensino_cod ?? $this->redeEnsinoCod);
+            // Token cache scoped by tenant
+            $this->tokenCacheKey = 'sed_api_token_' . $tenant->id;
         } else {
             // Fallback to config if no user is authenticated (for testing purposes)
             $this->username = config('sed.api.username');
             $this->password = config('sed.api.password');
-            $this->diretoriaId = config('sed.api.diretoria_id');
-            $this->municipioId = config('sed.api.municipio_id');
+            $this->diretoriaId = (int) config('sed.api.diretoria_id');
+            $this->municipioId = (int) config('sed.api.municipio_id');
         }
         
         // Validate required configuration

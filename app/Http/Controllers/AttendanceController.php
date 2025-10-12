@@ -34,8 +34,10 @@ class AttendanceController extends Controller
 
         // Disciplinas disponíveis para o usuário nesta turma
         $user = $request->user();
+        $tenantId = $user->tenant_id;
         $isAdmin = ($user->role ?? null) === 'admin';
         $links = \App\Models\TeacherClassDisciplineLink::with('discipline')
+            ->where('tenant_id', $tenantId)
             ->where('user_id', $user->id)
             ->where('class_code', $classCode)
             ->get();
@@ -45,9 +47,9 @@ class AttendanceController extends Controller
                 ->with('error', 'Você não tem acesso a esta turma.');
         }
 
-        // Se for admin ou tiver acesso total à turma, listar todas as disciplinas do sistema
+        // Se for admin ou tiver acesso total à turma, listar todas as disciplinas do sistema (do tenant)
         if ($isAdmin || $links->contains(fn($l) => (bool)$l->full_access)) {
-            $availableDisciplines = \App\Models\Discipline::orderBy('name')
+            $availableDisciplines = \App\Models\Discipline::where('tenant_id', $tenantId)->orderBy('name')
                 ->get(['id','name','code'])
                 ->map(fn($d) => ['id' => $d->id, 'name' => $d->name, 'code' => $d->code])
                 ->values();
@@ -87,8 +89,10 @@ class AttendanceController extends Controller
         $disciplineId = $request->query('discipline_id');
         // Validar acesso do professor à disciplina/turma via TeacherClassDisciplineLink
         $user = $request->user();
+        $tenantId = $user->tenant_id;
         $isAdmin = ($user->role ?? null) === 'admin';
-        $links = \App\Models\TeacherClassDisciplineLink::where('user_id', $user->id)
+        $links = \App\Models\TeacherClassDisciplineLink::where('tenant_id', $tenantId)
+            ->where('user_id', $user->id)
             ->where('class_code', $classCode)
             ->get();
         if (!$isAdmin && $links->isEmpty()) {
@@ -121,7 +125,8 @@ class AttendanceController extends Controller
         }, $alunos);
 
         // Buscar registros existentes no banco
-        $existing = AttendanceRecord::where('class_code', $classCode)
+        $existing = AttendanceRecord::where('tenant_id', $tenantId)
+            ->where('class_code', $classCode)
             ->when($disciplineId, fn($q) => $q->where('discipline_id', $disciplineId))
             ->whereDate('date', $date)
             ->get()
@@ -181,8 +186,10 @@ class AttendanceController extends Controller
         $disciplineId = $validated['discipline_id'] ?? null;
         // Validar acesso do professor à disciplina/turma via TeacherClassDisciplineLink
         $user = $request->user();
+        $tenantId = $user->tenant_id;
         $isAdmin = ($user->role ?? null) === 'admin';
-        $links = \App\Models\TeacherClassDisciplineLink::where('user_id', $user->id)
+        $links = \App\Models\TeacherClassDisciplineLink::where('tenant_id', $tenantId)
+            ->where('user_id', $user->id)
             ->where('class_code', $classCode)
             ->get();
         if (!$isAdmin && $links->isEmpty()) {
@@ -204,7 +211,8 @@ class AttendanceController extends Controller
         foreach ($validated['records'] as $rec) {
             if (empty($rec['status']) && empty($rec['note'])) {
                 // Se ambos nulos, remover registro se existir
-                AttendanceRecord::where('class_code', $classCode)
+                AttendanceRecord::where('tenant_id', $tenantId)
+                    ->where('class_code', $classCode)
                     ->whereDate('date', $date)
                     ->where('student_ra', $rec['ra'])
                     ->when($disciplineId, fn($q) => $q->where('discipline_id', $disciplineId))
@@ -214,6 +222,7 @@ class AttendanceController extends Controller
 
             AttendanceRecord::updateOrCreate(
                 [
+                    'tenant_id' => $tenantId,
                     'class_code' => $classCode,
                     'date' => $date->toDateString(),
                     'student_ra' => $rec['ra'],

@@ -16,6 +16,7 @@ class TeacherClassDisciplineLink extends Model
         'class_name',
         'school_year',
         'full_access',
+        'tenant_id',
     ];
 
     protected $casts = [
@@ -30,5 +31,10 @@ class TeacherClassDisciplineLink extends Model
     public function discipline()
     {
         return $this->belongsTo(Discipline::class);
+    }
+
+    public function tenant()
+    {
+        return $this->belongsTo(Tenant::class);
     }
 }

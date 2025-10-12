@@ -22,10 +22,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
-        'sed_diretoria_id',
-        'sed_municipio_id',
-        'sed_username',
-        'sed_password',
+        'tenant_id',
     ];
 
     /**
@@ -36,7 +33,6 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
-        'sed_password',
     ];
 
     /**
@@ -67,8 +63,18 @@ class User extends Authenticatable
         return $this->role === 'professor';
     }
 
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === 'super_admin';
+    }
+
     public function links()
     {
         return $this->hasMany(\App\Models\TeacherClassDisciplineLink::class);
+    }
+
+    public function tenant()
+    {
+        return $this->belongsTo(\App\Models\Tenant::class);
     }
 }

@@ -40,11 +40,12 @@ class SedApiController extends Controller
         try {
             // First, test if we can instantiate the service
             $user = auth()->user();
-            
+
+            $tenant = $user ? $user->tenant : null;
             $config = [
                 'url' => config('sed.api.url'),
-                'username' => $user ? $user->sed_username : config('sed.api.username'),
-                'password' => $user ? $user->sed_password : config('sed.api.password'),
+                'username' => $tenant ? $tenant->sed_username : config('sed.api.username'),
+                'has_password' => $tenant ? (!empty($tenant->sed_password_encrypted)) : (!empty(config('sed.api.password'))),
             ];
             
             // Check if configuration is loaded
@@ -59,15 +60,15 @@ class SedApiController extends Controller
             if (empty($config['username'])) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Configuração SED_USERNAME não encontrada no usuário',
+                    'message' => 'Usuário SED não configurado no tenant',
                     'config_check' => $config,
                 ], 500);
             }
             
-            if (empty($config['password'])) {
+            if (empty($config['has_password'])) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Configuração SED_PASSWORD não encontrada no usuário',
+                    'message' => 'Senha SED não configurada no tenant',
                     'config_check' => $config,
                 ], 500);
             }
@@ -96,8 +97,8 @@ class SedApiController extends Controller
                 'error' => $e->getMessage(),
                 'config_check' => [
                     'url' => config('sed.api.url'),
-                    'username' => auth()->user() && auth()->user()->sed_username ? 'SET' : 'NOT SET',
-                    'password' => auth()->user() && auth()->user()->sed_password ? 'SET' : 'NOT SET',
+                    'username' => (auth()->user() && auth()->user()->tenant)? ((auth()->user()->tenant->sed_username)? 'SET' : 'NOT SET') : 'NOT SET',
+'password' => (auth()->user() && auth()->user()->tenant)? ((!empty(auth()->user()->tenant->sed_password_encrypted))? 'SET' : 'NOT SET') : 'NOT SET',
                 ],
             ], $e->getHttpStatusCode());
         } catch (\Exception $e) {
@@ -112,8 +113,8 @@ class SedApiController extends Controller
                 'error' => $e->getMessage(),
                 'config_check' => [
                     'url' => config('sed.api.url'),
-                    'username' => auth()->user() && auth()->user()->sed_username ? 'SET' : 'NOT SET',
-                    'password' => auth()->user() && auth()->user()->sed_password ? 'SET' : 'NOT SET',
+                    'username' => (auth()->user() && auth()->user()->tenant)? ((auth()->user()->tenant->sed_username)? 'SET' : 'NOT SET') : 'NOT SET',
+'password' => (auth()->user() && auth()->user()->tenant)? ((!empty(auth()->user()->tenant->sed_password_encrypted))? 'SET' : 'NOT SET') : 'NOT SET',
                 ],
             ], 500);
         }

@@ -92,7 +92,7 @@ class SedApiException extends Exception
     public function report(): ?bool
     {
         // Log the exception with context
-        \Log::error('SED API Exception: ' . $this->getMessage(), [
+        \Illuminate\Support\Facades\Log::error('SED API Exception: ' . $this->getMessage(), [
             'http_status' => $this->getHttpStatusCode(),
             'context' => $this->getContext(),
             'trace' => $this->getTraceAsString(),

@@ -46,6 +46,14 @@ export default function AuthenticatedLayout({ header, children }) {
                                         </NavLink>
                                     </>
                                 )}
+                                {user.role === 'super_admin' && (
+                                    <NavLink
+                                        href={route('tenants.index')}
+                                        active={route().current('tenants.index')}
+                                    >
+                                        Integrações SED
+                                    </NavLink>
+                                )}
                             </div>
                         </div>
 
@@ -165,6 +173,14 @@ export default function AuthenticatedLayout({ header, children }) {
                                     Vínculos
                                 </ResponsiveNavLink>
                             </>
+                        )}
+                        {user.role === 'super_admin' && (
+                            <ResponsiveNavLink
+                                href={route('tenants.index')}
+                                active={route().current('tenants.index')}
+                            >
+                                Integrações SED
+                            </ResponsiveNavLink>
                         )}
                     </div>
 

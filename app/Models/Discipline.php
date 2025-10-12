@@ -12,6 +12,7 @@ class Discipline extends Model
     protected $fillable = [
         'name',
         'code',
+        'tenant_id',
     ];
 
     public function attendanceRecords()
@@ -22,5 +23,10 @@ class Discipline extends Model
     public function links()
     {
         return $this->hasMany(TeacherClassDisciplineLink::class);
+    }
+
+    public function tenant()
+    {
+        return $this->belongsTo(Tenant::class);
     }
 }

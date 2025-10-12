@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use App\Models\User;
+use App\Models\Tenant;
 use Illuminate\Support\Facades\Hash;
 
 class AdminUserSeeder extends Seeder
@@ -14,32 +14,47 @@ class AdminUserSeeder extends Seeder
      */
     public function run(): void
     {
-        User::updateOrCreate(
-            ['email' => 'jacarei@admin.com'],
-            [
-                'name' => 'Jacarei',
-                'password' => Hash::make('jacarei@2025'),
-                'email_verified_at' => now(),
-                'sed_diretoria_id' => '20207',
-                'sed_municipio_id' => '9267',
-                'sed_username' => 'SME392',
-                'sed_password' => 'zw28frb32x',
-                'role' => 'admin',
-            ]
-        );
+        // Criar usuários por role para cada conexão (tenant)
+        $tenants = Tenant::all();
 
-        User::updateOrCreate(
-            ['email' => 'paraibuna@admin.com'],
-            [
-                'name' => 'Paraibuna',
-                'password' => Hash::make('paraibuna@2025'),
-                'email_verified_at' => now(),
-                'sed_diretoria_id' => '20206', // Mesma de taubate
-                'sed_municipio_id' => '9448',
-                'sed_username' => 'SME504',
-                'sed_password' => 'a4i3rx86',
-                'role' => 'admin',
-            ]
-        );
+        foreach ($tenants as $tenant) {
+            $slug = strtolower(str_replace([' ', 'á','à','ã','â','é','ê','í','ó','ô','õ','ú','ç'], ['','a','a','a','a','e','e','i','o','o','o','u','c'], $tenant->name));
+
+            // Admin
+            User::updateOrCreate(
+                ['email' => $slug.'@admin.com'],
+                [
+                    'name' => $tenant->name.' Admin',
+                    'password' => Hash::make($slug.'@2025'),
+                    'email_verified_at' => now(),
+                    'role' => 'admin',
+                    'tenant_id' => $tenant->id,
+                ]
+            );
+
+            // Gestor
+            User::updateOrCreate(
+                ['email' => $slug.'@gestor.com'],
+                [
+                    'name' => $tenant->name.' Gestor',
+                    'password' => Hash::make($slug.'gestor@2025'),
+                    'email_verified_at' => now(),
+                    'role' => 'gestor',
+                    'tenant_id' => $tenant->id,
+                ]
+            );
+
+            // Professor
+            User::updateOrCreate(
+                ['email' => $slug.'@professor.com'],
+                [
+                    'name' => $tenant->name.' Professor',
+                    'password' => Hash::make($slug.'professor@2025'),
+                    'email_verified_at' => now(),
+                    'role' => 'professor',
+                    'tenant_id' => $tenant->id,
+                ]
+            );
+        }
     }
 }

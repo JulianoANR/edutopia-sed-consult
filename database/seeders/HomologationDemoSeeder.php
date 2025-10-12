@@ -44,10 +44,7 @@ class HomologationDemoSeeder extends Seeder
                 'email_verified_at' => now(),
                 'role' => 'professor',
                 // Campos SED (opcionais para homologação)
-                'sed_diretoria_id' => '20206',
-                'sed_municipio_id' => '9448',
-                'sed_username' => 'PROFANA',
-                'sed_password' => 'demo-ana',
+                'tenant_id' => \App\Models\Tenant::query()->value('id'),
             ]
         );
 
@@ -58,10 +55,7 @@ class HomologationDemoSeeder extends Seeder
                 'password' => Hash::make('profbruno@2025'),
                 'email_verified_at' => now(),
                 'role' => 'professor',
-                'sed_diretoria_id' => '20206',
-                'sed_municipio_id' => '9448',
-                'sed_username' => 'PROFBRUNO',
-                'sed_password' => 'demo-bruno',
+                'tenant_id' => \App\Models\Tenant::query()->value('id'),
             ]
         );
 

@@ -148,4 +148,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
 // AUTH ROUTES
 // ============================================================================
 
+Route::middleware(['auth', 'verified', 'can:manage-tenants'])->prefix('tenants')->name('tenants.')->group(function () {
+    Route::get('/', [\App\Http\Controllers\TenantController::class, 'index'])->name('index');
+    Route::post('/', [\App\Http\Controllers\TenantController::class, 'store'])->name('store');
+    Route::put('/{tenant}', [\App\Http\Controllers\TenantController::class, 'update'])->name('update');
+    Route::delete('/{tenant}', [\App\Http\Controllers\TenantController::class, 'destroy'])->name('destroy');
+});
+
 require __DIR__.'/auth.php';

@@ -21,9 +21,10 @@ class TeacherLinkController extends Controller
         if (!$selectedSchool) {
             return redirect()->route('schools.index')->with('error', 'É necessário escolher uma escola para gerenciar os vínculos.');
         }
-        $links = TeacherClassDisciplineLink::with(['user','discipline'])->orderBy('user_id')->get();
-        $teachers = User::where('role', 'professor')->orderBy('name')->get(['id', 'name', 'email']);
-        $disciplines = Discipline::orderBy('name')->get(['id','name','code']);
+        $tenantId = auth()->user()?->tenant_id;
+        $links = TeacherClassDisciplineLink::with(['user','discipline'])->where('tenant_id', $tenantId)->orderBy('user_id')->get();
+        $teachers = User::where('role', 'professor')->where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name', 'email']);
+        $disciplines = Discipline::where('tenant_id', $tenantId)->orderBy('name')->get(['id','name','code']);
         return Inertia::render('TeacherLinks/Index', compact('links','teachers','disciplines','selectedSchool'));
     }
 
@@ -36,6 +37,8 @@ class TeacherLinkController extends Controller
             'full_access' => 'boolean',
         ]);
 
+        $tenantId = $request->user()->tenant_id;
+
         try {
             $dadosTurma = $sedTurmasService->consultarTurma($validated['class_code']);
             $validated['class_name'] = $dadosTurma['nome_turma'] ?? null;
@@ -46,7 +49,8 @@ class TeacherLinkController extends Controller
         }
 
         // Verifica duplicidade antes de criar para retornar mensagem amigável
-        $alreadyExists = TeacherClassDisciplineLink::where('user_id', $validated['user_id'])
+        $alreadyExists = TeacherClassDisciplineLink::where('tenant_id', $tenantId)
+            ->where('user_id', $validated['user_id'])
             ->where('class_code', $validated['class_code'])
             ->where('discipline_id', $validated['discipline_id'])
             ->exists();
@@ -63,6 +67,7 @@ class TeacherLinkController extends Controller
         }
 
         try {
+            $validated['tenant_id'] = $tenantId;
             TeacherClassDisciplineLink::create($validated);
         } catch (QueryException $e) {
             // Trata violação de chave única com mensagem amigável
@@ -104,8 +109,11 @@ class TeacherLinkController extends Controller
             }
         }
 
+        $tenantId = $link->tenant_id ?? $request->user()->tenant_id;
+
         // Verifica duplicidade antes de atualizar (ignorando o próprio registro)
-        $alreadyExists = TeacherClassDisciplineLink::where('user_id', $link->user_id)
+        $alreadyExists = TeacherClassDisciplineLink::where('tenant_id', $tenantId)
+            ->where('user_id', $link->user_id)
             ->where('class_code', $validated['class_code'])
             ->where('discipline_id', $validated['discipline_id'])
             ->where('id', '!=', $link->id)

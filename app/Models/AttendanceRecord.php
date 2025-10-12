@@ -17,6 +17,7 @@ class AttendanceRecord extends Model
         'status',
         'note',
         'user_id',
+        'tenant_id',
     ];
 
     protected $casts = [
@@ -31,5 +32,10 @@ class AttendanceRecord extends Model
     public function discipline()
     {
         return $this->belongsTo(\App\Models\Discipline::class);
+    }
+
+    public function tenant()
+    {
+        return $this->belongsTo(Tenant::class);
     }
 }
