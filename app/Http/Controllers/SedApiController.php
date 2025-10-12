@@ -9,6 +9,7 @@ use App\Services\SedDadosBasicosService;
 use App\Exceptions\SedApiException;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
 class SedApiController extends Controller
@@ -30,6 +31,18 @@ class SedApiController extends Controller
         $this->sedDadosBasicosService = $sedDadosBasicosService;
     }
 
+    private function ensureTenant(): ?JsonResponse
+    {
+        $user = Auth::user();
+        if (!$user || !$user->tenant) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Acesso indisponível devido à falta de cadastro SED',
+            ], 403);
+        }
+        return null;
+    }
+
     /**
      * Test the SED API connection
      * 
@@ -37,9 +50,13 @@ class SedApiController extends Controller
      */
     public function testConnection(): JsonResponse
     {
+        $guard = $this->ensureTenant();
+        if ($guard) {
+            return $guard;
+        }
         try {
             // First, test if we can instantiate the service
-            $user = auth()->user();
+            $user = Auth::user();
 
             $tenant = $user ? $user->tenant : null;
             $config = [
@@ -97,8 +114,8 @@ class SedApiController extends Controller
                 'error' => $e->getMessage(),
                 'config_check' => [
                     'url' => config('sed.api.url'),
-                    'username' => (auth()->user() && auth()->user()->tenant)? ((auth()->user()->tenant->sed_username)? 'SET' : 'NOT SET') : 'NOT SET',
-'password' => (auth()->user() && auth()->user()->tenant)? ((!empty(auth()->user()->tenant->sed_password_encrypted))? 'SET' : 'NOT SET') : 'NOT SET',
+                    'username' => ($user && $user->tenant)? ((!empty($user->tenant->sed_username))? 'SET' : 'NOT SET') : 'NOT SET',
+                    'password' => ($user && $user->tenant)? ((!empty($user->tenant->sed_password_encrypted))? 'SET' : 'NOT SET') : 'NOT SET',
                 ],
             ], $e->getHttpStatusCode());
         } catch (\Exception $e) {
@@ -113,8 +130,8 @@ class SedApiController extends Controller
                 'error' => $e->getMessage(),
                 'config_check' => [
                     'url' => config('sed.api.url'),
-                    'username' => (auth()->user() && auth()->user()->tenant)? ((auth()->user()->tenant->sed_username)? 'SET' : 'NOT SET') : 'NOT SET',
-'password' => (auth()->user() && auth()->user()->tenant)? ((!empty(auth()->user()->tenant->sed_password_encrypted))? 'SET' : 'NOT SET') : 'NOT SET',
+                    'username' => ($user && $user->tenant)? ((!empty($user->tenant->sed_username))? 'SET' : 'NOT SET') : 'NOT SET',
+                    'password' => ($user && $user->tenant)? ((!empty($user->tenant->sed_password_encrypted))? 'SET' : 'NOT SET') : 'NOT SET',
                 ],
             ], 500);
         }
@@ -127,6 +144,10 @@ class SedApiController extends Controller
      */
     public function getTokenStatus(): JsonResponse
     {
+        $guard = $this->ensureTenant();
+        if ($guard) {
+            return $guard;
+        }
         try {
             $hasValidToken = $this->sedApiService->hasValidToken();
             $tokenInfo = $this->sedApiService->getTokenInfo();
@@ -156,6 +177,10 @@ class SedApiController extends Controller
      */
     public function clearToken(): JsonResponse
     {
+        $guard = $this->ensureTenant();
+        if ($guard) {
+            return $guard;
+        }
         try {
             $this->sedApiService->clearToken();
 
@@ -180,6 +205,10 @@ class SedApiController extends Controller
      */
     public function getEscolasPorMunicipio(Request $request): JsonResponse
     {
+        $guard = $this->ensureTenant();
+        if ($guard) {
+            return $guard;
+        }
         try {
             // Obter parâmetros da requisição
             $codDiretoria = $request->query('diretoria_id', null);
@@ -231,6 +260,10 @@ class SedApiController extends Controller
      */
     public function consultarTurma(Request $request): JsonResponse
     {
+        $guard = $this->ensureTenant();
+        if ($guard) {
+            return $guard;
+        }
         try {
             // Validar parâmetro obrigatório
             $request->validate([
@@ -294,6 +327,10 @@ class SedApiController extends Controller
      */
     public function getDiretorias(): JsonResponse
     {
+        $guard = $this->ensureTenant();
+        if ($guard) {
+            return $guard;
+        }
         try {
             $diretorias = $this->sedDadosBasicosService->getDiretorias();
             
@@ -336,6 +373,10 @@ class SedApiController extends Controller
      */
     public function getTipoEnsino(): JsonResponse
     {
+        $guard = $this->ensureTenant();
+        if ($guard) {
+            return $guard;
+        }
         try {
             $tipoEnsino = $this->sedDadosBasicosService->getTipoEnsino();
             

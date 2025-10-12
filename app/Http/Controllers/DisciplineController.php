@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Validation\Rule;
 
@@ -19,7 +20,8 @@ class DisciplineController extends Controller
             return redirect()->route('schools.index')->with('error', 'É necessário escolher uma escola para gerenciar disciplinas.');
         }
 
-        $tenantId = auth()->user()?->tenant_id;
+        $user = Auth::user();
+        $tenantId = $user?->tenant_id;
 
         return Inertia::render('Disciplines/Index', [
             'disciplines' => Discipline::where('tenant_id', $tenantId)->orderBy('name')->get(),

@@ -9,7 +9,18 @@ export default function TeacherLinksIndex({ links = [], teachers = [], disciplin
   const [form, setForm] = useState({ user_id: '', class_code: '', discipline_id: '', full_access: false });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-
+  // Estados de validação e ajuda visual
+  const [touched, setTouched] = useState({ user_id: false, class_code: false, discipline_id: false });
+  const userError = !form.user_id ? 'Selecione um professor.' : '';
+  const classError = !selectedSchool?.id
+    ? 'Selecione uma escola ativa antes de vincular.'
+    : (!form.class_code ? 'Selecione a turma.' : '');
+  const isFormValid = !!(form.user_id && selectedSchool?.id && form.class_code);
+  const clearForm = () => {
+    setForm({ user_id: '', class_code: '', discipline_id: '', full_access: false });
+    setTouched({ user_id: false, class_code: false, discipline_id: false });
+    setError(null);
+  };
   // Seleção de turmas via SED com base na escola globalmente selecionada
   const [schoolClasses, setSchoolClasses] = useState([]);
   // Removido estado de ano letivo: sempre usar ano atual
@@ -72,6 +83,8 @@ export default function TeacherLinksIndex({ links = [], teachers = [], disciplin
 
   const handleCreate = async (e) => {
     e.preventDefault();
+    setTouched({ user_id: true, class_code: true, discipline_id: true });
+    if (!isFormValid) return;
     setLoading(true);
     setError(null);
     try {
@@ -83,6 +96,7 @@ export default function TeacherLinksIndex({ links = [], teachers = [], disciplin
       };
       await axios.post('/teacher-links', payload);
       setForm({ user_id: '', class_code: '', discipline_id: '', full_access: false });
+      setTouched({ user_id: false, class_code: false, discipline_id: false });
       await reload();
     } catch (e) {
       const status = e.response?.status;
@@ -227,31 +241,43 @@ export default function TeacherLinksIndex({ links = [], teachers = [], disciplin
             </div>
           )}
 
-          {/* Card isolado para criar vínculo */}
+          {/* Card isolado para criar vínculo - adaptado para seguir padrão de Disciplinas */}
           <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6">
             <div className="p-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">➕ Criar vínculo</h3>
+              <div className="mb-6">
+                <h4 className="text-base font-semibold text-gray-900">Novo Vínculo</h4>
+                <p className="mt-1 text-sm text-gray-600">Selecione o professor, a turma da escola ativa e, opcionalmente, a disciplina. Dica: use "Todas as disciplinas" para conceder acesso total.</p>
+              </div>
+
               <form onSubmit={handleCreate}>
-                {/* Seleção via SED sempre habilitada: toggle removido */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div className="md:col-span-2">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Professor</label>
-                    <select value={form.user_id} onChange={e => setForm({ ...form, user_id: e.target.value })} required className="w-full border-gray-300 rounded-md shadow-sm">
+                    <select
+                      value={form.user_id}
+                      onChange={e => setForm({ ...form, user_id: e.target.value })}
+                      onBlur={() => setTouched(prev => ({ ...prev, user_id: true }))}
+                      required
+                      className={`w-full border-gray-300 rounded-md shadow-sm ${touched.user_id && userError ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'focus:ring-indigo-500 focus:border-indigo-500'}`}
+                    >
                       <option value="">Selecione…</option>
                       {teachers.map(t => (
                         <option key={t.id} value={t.id}>{t.name} ({t.email})</option>
                       ))}
                     </select>
+                    <div className="mt-2 flex items-center justify-between">
+                      <p className={`text-xs ${touched.user_id && userError ? 'text-red-600' : 'text-gray-500'}`}>{touched.user_id && userError ? userError : 'Escolha o professor responsável pelo vínculo.'}</p>
+                    </div>
                   </div>
-
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Turma</label>
                     <select
                       value={form.class_code}
                       onChange={e => setForm({ ...form, class_code: e.target.value })}
+                      onBlur={() => setTouched(prev => ({ ...prev, class_code: true }))}
                       required
-                      className="w-full border-gray-300 rounded-md shadow-sm"
+                      className={`w-full border-gray-300 rounded-md shadow-sm ${touched.class_code && classError ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'focus:ring-indigo-500 focus:border-indigo-500'}`}
                       disabled={loadingClasses || !selectedSchool?.id}
                     >
                       <option value="">{loadingClasses ? 'Carregando turmas…' : 'Selecione a turma…'}</option>
@@ -261,19 +287,47 @@ export default function TeacherLinksIndex({ links = [], teachers = [], disciplin
                         </option>
                       ))}
                     </select>
+                    <div className="mt-2 flex items-center justify-between">
+                      <p className={`text-xs ${touched.class_code && classError ? 'text-red-600' : 'text-gray-500'}`}>{touched.class_code && classError ? classError : `Turmas carregadas do SED para a escola ativa. Ano letivo: ${new Date().getFullYear()}.`}</p>
+                    </div>
                   </div>
+
                   <div>
-                     <label className="block text-sm font-medium text-gray-700 mb-1">Disciplina</label>
-                     <select value={form.discipline_id} onChange={e => setForm({ ...form, discipline_id: e.target.value, full_access: e.target.value === '' })} className="w-full border-gray-300 rounded-md shadow-sm">
-                       <option value="">Todas as disciplinas</option>
-                       {disciplines.map(d => (
-                         <option key={d.id} value={d.id}>{d.name} ({d.code || '-'})</option>
-                       ))}
-                     </select>
-                   </div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Disciplina (opcional)</label>
+                    <select
+                      value={form.discipline_id}
+                      onChange={e => setForm({ ...form, discipline_id: e.target.value, full_access: e.target.value === '' })}
+                      onBlur={() => setTouched(prev => ({ ...prev, discipline_id: true }))}
+                      className="w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                    >
+                      <option value="">Todas as disciplinas</option>
+                      {disciplines.map(d => (
+                        <option key={d.id} value={d.id}>{d.name} ({d.code || '-'})</option>
+                      ))}
+                    </select>
+                    <div className="mt-2 flex items-center justify-between">
+                      <p className="text-xs text-gray-500">{form.discipline_id ? 'O professor terá acesso apenas à disciplina selecionada.' : 'Selecione "Todas as disciplinas" para conceder acesso total.'}</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="mt-3">
-                  <button type="submit" disabled={loading} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md disabled:opacity-50">Adicionar vínculo</button>
+
+                <div className="mt-8 flex items-center gap-3">
+                  <button
+                    type="submit"
+                    disabled={loading || !isFormValid}
+                    className="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50"
+                  >
+                    <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
+                    Adicionar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={clearForm}
+                    className="inline-flex items-center rounded-md bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+                  >
+                    <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4h16M7 8h10M10 12h7M13 16h4" /></svg>
+                    Limpar
+                  </button>
                 </div>
               </form>
             </div>

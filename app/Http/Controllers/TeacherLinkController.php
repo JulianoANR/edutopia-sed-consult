@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Session;
 use App\Services\SedTurmasService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\Auth;
 
 class TeacherLinkController extends Controller
 {
@@ -21,10 +22,14 @@ class TeacherLinkController extends Controller
         if (!$selectedSchool) {
             return redirect()->route('schools.index')->with('error', 'É necessário escolher uma escola para gerenciar os vínculos.');
         }
-        $tenantId = auth()->user()?->tenant_id;
+        
+        $user = Auth::user();
+        $tenantId = $user?->tenant_id;
+
         $links = TeacherClassDisciplineLink::with(['user','discipline'])->where('tenant_id', $tenantId)->orderBy('user_id')->get();
         $teachers = User::where('role', 'professor')->where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name', 'email']);
         $disciplines = Discipline::where('tenant_id', $tenantId)->orderBy('name')->get(['id','name','code']);
+        
         return Inertia::render('TeacherLinks/Index', compact('links','teachers','disciplines','selectedSchool'));
     }
 
