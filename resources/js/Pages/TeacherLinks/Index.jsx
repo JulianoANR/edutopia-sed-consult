@@ -93,6 +93,7 @@ export default function TeacherLinksIndex({ links = [], teachers = [], disciplin
         class_code: form.class_code,
         discipline_id: form.full_access ? null : (form.discipline_id ? Number(form.discipline_id) : null),
         full_access: !!form.full_access,
+        school_code: selectedSchool?.id || null,
       };
       await axios.post('/teacher-links', payload);
       setForm({ user_id: '', class_code: '', discipline_id: '', full_access: false });
@@ -149,6 +150,7 @@ export default function TeacherLinksIndex({ links = [], teachers = [], disciplin
         class_code: String(item.class_code || '').trim(),
         discipline_id: item.full_access ? null : (item.discipline_id ? Number(item.discipline_id) : null),
         full_access: !!item.full_access,
+        school_code: item.school_code || selectedSchool?.id || null,
         _method: 'PUT',
       };
       await axios.post(`/teacher-links/${encodeURIComponent(id)}`, payload);
@@ -168,9 +170,11 @@ export default function TeacherLinksIndex({ links = [], teachers = [], disciplin
           const c = data.errors.class_code?.[0];
           const d = data.errors.discipline_id?.[0];
           const f = data.errors.full_access?.[0];
+          // const s = data.errors.school_code?.[0];
           if (c) msgs.push(c);
           if (d) msgs.push(d);
           if (f) msgs.push(f);
+          // if (s) msgs.push(s);
         }
         setError(msgs.length ? msgs : (data?.message || e.message || 'Não foi possível atualizar o vínculo. Verifique os campos e tente novamente.'));
       }

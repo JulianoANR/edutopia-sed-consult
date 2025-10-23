@@ -12,12 +12,15 @@ class TeacherClassDisciplineLink extends Model
     protected $fillable = [
         'user_id',
         'discipline_id',
-        'class_code',
         'class_name',
         'school_year',
         'full_access',
         'tenant_id',
+        'class_code',
+        'school_code',
     ];
+
+    protected $table = 'teacher_class_discipline_links';
 
     protected $casts = [
         'full_access' => 'boolean',

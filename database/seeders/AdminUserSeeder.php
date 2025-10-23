@@ -44,6 +44,8 @@ class AdminUserSeeder extends Seeder
                 ]
             );
 
+            // jacarei@professor.com
+            // jacareiprofessor@2025
             // Professor
             User::updateOrCreate(
                 ['email' => $slug.'@professor.com'],

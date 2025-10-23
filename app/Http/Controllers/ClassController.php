@@ -6,19 +6,26 @@ use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
-use App\Services\SedApiService;
-use App\Services\SedAlunosService;
+use App\Services\{
+    SedApiService,
+    SedTurmasService,
+    SedAlunosService
+};
 use App\Exports\StudentsExport;
+use App\Models\TeacherClassDisciplineLink;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
 class ClassController extends Controller
 {
     protected SedAlunosService $sedAlunosService;
+    protected SedTurmasService $sedTurmasService;
 
-    public function __construct(SedAlunosService $sedAlunosService)
+    public function __construct(SedAlunosService $sedAlunosService, SedTurmasService $sedTurmasService)
     {
         $this->sedAlunosService = $sedAlunosService;
+        $this->sedTurmasService = $sedTurmasService;
     }
 
     /**
@@ -131,5 +138,43 @@ class ClassController extends Controller
             Log::error('Erro na exportação CSV: ' . $e->getMessage());
             return response()->json(['error' => 'Erro interno do servidor'], 500);
         }
+    }
+
+    /**
+     * Display the user's classes.
+     */
+    public function myClasses()
+    {
+        $user = Auth::user();
+        $anoLetivo = date('Y');
+
+        $classLinks = TeacherClassDisciplineLink::where('user_id', $user->id)
+            ->with('discipline')
+            ->get();
+
+        $schoolsIds = $classLinks->pluck('school_code')->unique()->filter()->toArray();
+        $classesIds = $classLinks->pluck('class_code')->unique()->filter()->toArray();
+
+        $schools = [];
+
+        foreach ($schoolsIds as $schoolId) {
+            
+            $schoolsTmpResult = $this->sedTurmasService
+                ->getRelacaoClasses(
+                    $anoLetivo,
+                    $schoolId
+                );
+
+            if ($schoolsTmpResult['outClasses']) {
+
+                $schoolsTmpResult['outClasses'] = array_filter($schoolsTmpResult['outClasses'], function($class) use ($classesIds) {
+                    return in_array($class['outNumClasse'], $classesIds);
+                });
+
+                $schools[] = $schoolsTmpResult;
+            }
+        }
+
+        dd($schools);
     }
 }

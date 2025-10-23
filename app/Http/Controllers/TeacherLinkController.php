@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\Auth;
 
 class TeacherLinkController extends Controller
 {
-    public function index(): Response|RedirectResponse
+    public function index($schoolCode = null): Response|RedirectResponse
     {
         $selectedSchool = Session::get('selected_school');
         if (!$selectedSchool) {
@@ -26,7 +26,7 @@ class TeacherLinkController extends Controller
         $user = Auth::user();
         $tenantId = $user?->tenant_id;
 
-        $links = TeacherClassDisciplineLink::with(['user','discipline'])->where('tenant_id', $tenantId)->orderBy('user_id')->get();
+        $links = TeacherClassDisciplineLink::with(['user','discipline'])->where('tenant_id', $tenantId)->where('school_code', $schoolCode)->orderBy('user_id')->get();
         $teachers = User::where('role', 'professor')->where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name', 'email']);
         $disciplines = Discipline::where('tenant_id', $tenantId)->orderBy('name')->get(['id','name','code']);
         
@@ -40,6 +40,7 @@ class TeacherLinkController extends Controller
             'class_code' => 'required|string',
             'discipline_id' => 'nullable|exists:disciplines,id',
             'full_access' => 'boolean',
+            'school_code' => 'nullable|string',
         ]);
 
         $tenantId = $request->user()->tenant_id;
@@ -48,6 +49,8 @@ class TeacherLinkController extends Controller
             $dadosTurma = $sedTurmasService->consultarTurma($validated['class_code']);
             $validated['class_name'] = $dadosTurma['nome_turma'] ?? null;
             $validated['school_year'] = $dadosTurma['outAnoLetivo'] ?? null;
+            $validated['school_code'] = $dadosTurma['outCodEscola'] ?? $validated['school_code'];
+
         } catch (\Throwable $e) {
             $validated['class_name'] = $validated['class_name'] ?? null;
             $validated['school_year'] = $validated['school_year'] ?? null;
@@ -101,6 +104,7 @@ class TeacherLinkController extends Controller
             'class_code' => 'required|string',
             'discipline_id' => 'nullable|exists:disciplines,id',
             'full_access' => 'boolean',
+            'school_code' => 'nullable|string',
         ]);
 
         if (!empty($validated['class_code'])) {
@@ -108,6 +112,8 @@ class TeacherLinkController extends Controller
                 $dadosTurma = $sedTurmasService->consultarTurma($validated['class_code']);
                 $validated['class_name'] = $dadosTurma['nome_turma'] ?? null;
                 $validated['school_year'] = $dadosTurma['outAnoLetivo'] ?? null;
+                $validated['school_code'] = $dadosTurma['outCodEscola'] ?? $validated['school_code'];
+
             } catch (\Throwable $e) {
                 $validated['class_name'] = $link->class_name;
                 $validated['school_year'] = $link->school_year;
