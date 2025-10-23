@@ -154,10 +154,29 @@ class ClassController extends Controller
 
         $schoolsIds = $classLinks->pluck('school_code')->unique()->filter()->toArray();
         $classesIds = $classLinks->pluck('class_code')->unique()->filter()->toArray();
+        
+        // Debug: Log dos IDs coletados
+        Log::info('IDs coletados do banco', [
+            'schoolsIds' => $schoolsIds,
+            'classesIds' => $classesIds,
+            'classLinks' => $classLinks->toArray()
+        ]);
 
         $schools = [];
 
         foreach ($schoolsIds as $schoolId) {
+            
+            // Buscar apenas as turmas do professor nesta escola específica
+            $classesIdsForThisSchool = $classLinks
+                ->where('school_code', $schoolId)
+                ->pluck('class_code')
+                ->unique()
+                ->filter()
+                ->toArray();
+            
+            Log::info('Turmas do professor na escola ' . $schoolId, [
+                'classesIdsForThisSchool' => $classesIdsForThisSchool
+            ]);
             
             $schoolsTmpResult = $this->sedTurmasService
                 ->getRelacaoClasses(
@@ -165,16 +184,34 @@ class ClassController extends Controller
                     $schoolId
                 );
 
-            if ($schoolsTmpResult['outClasses']) {
+            // Debug: Log dos dados brutos da API
+            Log::info('Dados brutos da escola ' . $schoolId, [
+                'outClasses_count' => count($schoolsTmpResult['outClasses'] ?? []),
+                'outClasses' => $schoolsTmpResult['outClasses'] ?? []
+            ]);
 
-                $schoolsTmpResult['outClasses'] = array_filter($schoolsTmpResult['outClasses'], function($class) use ($classesIds) {
-                    return in_array($class['outNumClasse'], $classesIds);
+            if ($schoolsTmpResult['outClasses']) {
+                $originalCount = count($schoolsTmpResult['outClasses']);
+                
+                // Filtrar apenas as turmas do professor nesta escola específica
+                $schoolsTmpResult['outClasses'] = array_filter($schoolsTmpResult['outClasses'], function($class) use ($classesIdsForThisSchool) {
+                    return in_array($class['outNumClasse'], $classesIdsForThisSchool);
                 });
+
+                // Debug: Log após filtro
+                Log::info('Após filtro da escola ' . $schoolId, [
+                    'original_count' => $originalCount,
+                    'filtered_count' => count($schoolsTmpResult['outClasses']),
+                    'classesIdsForThisSchool' => $classesIdsForThisSchool,
+                    'filtered_classes' => $schoolsTmpResult['outClasses']
+                ]);
 
                 $schools[] = $schoolsTmpResult;
             }
         }
-
-        dd($schools);
+       
+        return Inertia::render('Classes/MyClasses', [
+            'schools' => $schools
+        ]);
     }
 }

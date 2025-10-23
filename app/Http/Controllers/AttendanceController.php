@@ -73,6 +73,7 @@ class AttendanceController extends Controller
             'selectedSchool' => $selectedSchool,
             'today' => Carbon::today()->toDateString(),
             'disciplines' => $availableDisciplines,
+            'userRole' => $user->role,
         ]);
     }
 
