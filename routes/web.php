@@ -109,7 +109,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // ----------------------------------------------------------------------------
     // MANAGEMENT ROUTES (admin/gestor)
     // ----------------------------------------------------------------------------
-    Route::middleware(['role:admin,gestor'])->group(function () {
+    Route::middleware(['role:admin,gestor,super_admin'])->group(function () {
         // Disciplines
         Route::get('/disciplines', [\App\Http\Controllers\DisciplineController::class, 'index'])->name('disciplines.index');
         Route::post('/disciplines', [\App\Http\Controllers\DisciplineController::class, 'store'])->name('disciplines.store');

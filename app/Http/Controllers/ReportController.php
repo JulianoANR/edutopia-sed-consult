@@ -31,10 +31,10 @@ class ReportController extends Controller
     public function index(Request $request): Response|RedirectResponse
     {
         $user = $request->user();
-        $tenantId = $user->tenant_id;
 
         $schools = $this->sedEscolasService->getEscolasPorMunicipio();
         $disciplines = Discipline::all();
+
 
         $tiposEnsino = [
             'Educação Básica',
@@ -43,7 +43,7 @@ class ReportController extends Controller
         ];
       
         return Inertia::render('Reports/Index', [
-            'schools' => $schools,
+            'schools' => $schools['outEscolas'] ?? [],
             'disciplines' => $disciplines,
             'tiposEnsino' => $tiposEnsino,
         ]);

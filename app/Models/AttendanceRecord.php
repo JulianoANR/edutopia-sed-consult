@@ -9,6 +9,8 @@ class AttendanceRecord extends Model
 {
     use HasFactory;
 
+    protected $table = 'attendance_records';
+
     protected $fillable = [
         'class_code',
         'class_name',
