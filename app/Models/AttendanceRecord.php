@@ -11,6 +11,10 @@ class AttendanceRecord extends Model
 
     protected $fillable = [
         'class_code',
+        'class_name',
+        'school_code',
+        'school_name',
+        'type_ensino',
         'date',
         'student_ra',
         'discipline_id',
@@ -19,6 +23,8 @@ class AttendanceRecord extends Model
         'user_id',
         'tenant_id',
     ];
+
+    
 
     protected $casts = [
         'date' => 'date',

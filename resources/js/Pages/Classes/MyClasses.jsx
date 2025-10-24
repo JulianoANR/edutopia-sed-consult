@@ -249,7 +249,7 @@ export default function MyClasses({ schools }) {
             header={
                 <div className="flex justify-between items-center">
                     <div className="flex items-center space-x-4">
-                        <Link
+                        {/* <Link
                             href="/dashboard"
                             className="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200"
                         >
@@ -257,7 +257,7 @@ export default function MyClasses({ schools }) {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                             </svg>
                             Voltar ao Dashboard
-                        </Link>
+                        </Link> */}
                         <div>
                             <h2 className="text-xl font-semibold leading-tight text-gray-800">
                                 Minhas Turmas

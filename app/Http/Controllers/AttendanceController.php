@@ -143,6 +143,12 @@ class AttendanceController extends Controller
                 'number' => $student['number'],
                 'status' => $record->status ?? null,
                 'note' => $record->note ?? null,
+                'user_id' => $record->user_id ?? null,
+                'class_code' => $record->class_code ?? null,
+                'class_name' => $record->class_name ?? null,
+                'school_code' => $record->school_code ?? null,
+                'school_name' => $record->school_name ?? null,
+                'type_ensino' => $record->type_ensino ?? null,
             ];
         }, $students);
 
@@ -175,6 +181,19 @@ class AttendanceController extends Controller
             'records.*.status' => 'nullable|in:present,absent,justified',
             'records.*.note' => 'nullable|string',
         ]);
+
+        $classData = $this->sedTurmasService->consultarTurma($classCode);
+        $className = $classData['nome_turma'] ?? null;
+        $schoolCode = $classData['outCodEscola'] ?? null;
+        $schoolName = $classData['outDescNomeAbrevEscola'] ?? null;
+        $typeEnsino = $classData['outDescTipoEnsino'] ?? null;
+
+        if(empty($classData['outAlunos'])){
+            return response()->json([
+                'success' => false,
+                'message' => 'Turma não encontrada.'
+            ], 404);
+        }
 
         $date = Carbon::parse($validated['date']);
         if (!$date->isToday()) {
@@ -224,10 +243,14 @@ class AttendanceController extends Controller
             AttendanceRecord::updateOrCreate(
                 [
                     'tenant_id' => $tenantId,
+                    'class_name' => $className,
                     'class_code' => $classCode,
                     'date' => $date->toDateString(),
                     'student_ra' => $rec['ra'],
                     'discipline_id' => $disciplineId,
+                    'school_code' => $schoolCode,
+                    'school_name' => $schoolName,
+                    'type_ensino' => $typeEnsino,
                 ],
                 [
                     'status' => $rec['status'],

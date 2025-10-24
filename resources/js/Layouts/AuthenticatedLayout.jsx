@@ -45,6 +45,12 @@ export default function AuthenticatedLayout({ header, children }) {
                                         >
                                             Vínculos
                                         </NavLink>
+                                        <NavLink
+                                            href={route('reports.index')}
+                                            active={route().current('reports.index')}
+                                        >
+                                            Relatórios
+                                        </NavLink>
                                     </>
                                 )}
                                 {user.role === 'super_admin' && (

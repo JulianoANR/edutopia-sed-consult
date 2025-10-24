@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ClassController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SchoolController;
 use App\Http\Controllers\SedApiController;
 use App\Http\Controllers\StudentController;
@@ -75,6 +76,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // ----------------------------------------------------------------------------
     Route::get('/dashboard', function () {
 
+
+        // Se role igual professor
+        if (Auth::user()->role == 'professor') {
+            return redirect()->route('classes.my');
+        }
+
         // Se role professor 
         return redirect()->route('schools.index');
     })->name('dashboard');
@@ -114,6 +121,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/teacher-links', [\App\Http\Controllers\TeacherLinkController::class, 'store'])->name('teacher_links.store');
         Route::put('/teacher-links/{link}', [\App\Http\Controllers\TeacherLinkController::class, 'update'])->name('teacher_links.update');
         Route::delete('/teacher-links/{link}', [\App\Http\Controllers\TeacherLinkController::class, 'destroy'])->name('teacher_links.destroy');
+
+        // reports
+        Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
     });
 
     // ----------------------------------------------------------------------------
