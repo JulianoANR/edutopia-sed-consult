@@ -124,6 +124,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         // reports
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+        Route::post('/reports/data', [ReportController::class, 'data'])->name('reports.data');
     });
 
     // ----------------------------------------------------------------------------

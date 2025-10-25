@@ -2,6 +2,8 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head } from '@inertiajs/react';
 import { useMemo, useState, useEffect } from 'react';
 import axios from 'axios';
+import ReportChart from '@/Components/ReportChart';
+import ReportTable from '@/Components/ReportTable';
 
 export default function ReportsIndex({ schools = [], disciplines = [], tiposEnsino = [] }) {
   const [filters, setFilters] = useState({ school: '', discipline: '', tipoEnsino: '', classCode: '' });
@@ -13,6 +15,10 @@ export default function ReportsIndex({ schools = [], disciplines = [], tiposEnsi
   // Turmas (placeholder: serão carregadas após a escola ser selecionada)
   const [classes, setClasses] = useState([]);
   const [loadingClasses, setLoadingClasses] = useState(false);
+  // Estados de relatório
+  const [reportLoading, setReportLoading] = useState(false);
+  const [reportError, setReportError] = useState(null);
+  const [reportData, setReportData] = useState(null);
 
   // Helpers para opções de selects
   const getSchoolLabel = (s) => s?.school_name || s?.outDescNomeEscola || s?.name || `Escola ${s?.outCodEscola || s?.id || ''}`;
@@ -66,22 +72,43 @@ export default function ReportsIndex({ schools = [], disciplines = [], tiposEnsi
     setError(null);
   };
 
-  const generateReport = (e) => {
+  const generateReport = async (e) => {
     e.preventDefault();
     setTouched({ school: true, discipline: true, tipoEnsino: true, classCode: true });
-    // Validação mínima: exigir escola para habilitar turma (no futuro)
     if (!filters.school) {
       setError('Selecione uma escola para continuar.');
       return;
     }
     setError(null);
-    setLoading(true);
-    setToast('Filtros aplicados (pré-visualização).');
-    const t = setTimeout(() => setToast(null), 2000);
-    setTimeout(() => {
-      setLoading(false);
-      clearTimeout(t);
-    }, 800);
+
+    const payload = {
+      school_codes: filters.school ? [filters.school] : [],
+      class_codes: filters.classCode ? [filters.classCode] : [],
+      discipline_ids: filters.discipline ? [parseInt(filters.discipline, 10)] : [],
+      tipo_ensino: filters.tipoEnsino ? [filters.tipoEnsino] : [],
+      student_ras: [], // filtro futuro
+      dates: [], // sem filtro de datas por enquanto
+    };
+
+    const url = (typeof route === 'function') ? route('reports.data') : '/reports/data';
+    try {
+      setReportLoading(true);
+      setReportError(null);
+      setReportData(null);
+      const res = await axios.post(url, payload);
+      if (res.data?.success) {
+        setReportData(res.data);
+        setToast('Relatório gerado com sucesso.');
+        setTimeout(() => setToast(null), 2000);
+      } else {
+        throw new Error(res.data?.message || 'Falha ao gerar relatório');
+      }
+    } catch (err) {
+      console.error('Erro ao gerar relatório:', err);
+      setReportError(err.response?.data?.message || err.message || 'Erro ao gerar relatório.');
+    } finally {
+      setReportLoading(false);
+    }
   };
 
   return (
@@ -216,27 +243,96 @@ export default function ReportsIndex({ schools = [], disciplines = [], tiposEnsi
             </div>
           </div>
 
-          {/* Área de pré-visualização/sumário (mock) */}
-          <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-            <div className="p-6">
-              <h4 className="text-base font-semibold text-gray-900">Pré-visualização</h4>
-              <p className="mt-1 text-sm text-gray-600">Esta seção exibirá o relatório após a geração. Por enquanto, mostra os filtros selecionados.</p>
-              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                <div className="rounded-md border border-gray-200 p-3">
-                  <span className="font-medium text-gray-700">Escola:</span> <span className="text-gray-900">{filters.school || '—'}</span>
-                </div>
-                <div className="rounded-md border border-gray-200 p-3">
-                  <span className="font-medium text-gray-700">Disciplina:</span> <span className="text-gray-900">{filters.discipline || 'Todas'}</span>
-                </div>
-                <div className="rounded-md border border-gray-200 p-3">
-                  <span className="font-medium text-gray-700">Tipo de Ensino:</span> <span className="text-gray-900">{filters.tipoEnsino || 'Todos'}</span>
-                </div>
-                <div className="rounded-md border border-gray-200 p-3">
-                  <span className="font-medium text-gray-700">Turma:</span> <span className="text-gray-900">{filters.classCode || '—'}</span>
+          {/* Área de resultados do relatório */}
+          {reportLoading && (
+            <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+              <div className="p-6 flex items-center">
+                <svg className="animate-spin h-5 w-5 text-indigo-600 mr-3" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                </svg>
+                <span className="text-sm text-gray-700">Gerando relatório, aguarde...</span>
+              </div>
+            </div>
+          )}
+
+          {reportError && (
+            <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+              <div className="p-6">
+                <div className="p-3 rounded bg-red-50 text-red-700 border border-red-200">
+                  {reportError}
                 </div>
               </div>
             </div>
-          </div>
+          )}
+
+          {reportData && (
+            <div className="space-y-6">
+              {/* Cards de resumo */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="rounded-lg border border-gray-200 bg-white p-4">
+                  <div className="text-xs text-gray-500">Total registros</div>
+                  <div className="mt-1 text-2xl font-semibold text-gray-900">{reportData.summary?.total ?? 0}</div>
+                </div>
+                <div className="rounded-lg border border-gray-200 bg-white p-4">
+                  <div className="text-xs text-gray-500">Presentes</div>
+                  <div className="mt-1 text-2xl font-semibold text-green-600">{reportData.summary?.present ?? 0}</div>
+                </div>
+                <div className="rounded-lg border border-gray-200 bg-white p-4">
+                  <div className="text-xs text-gray-500">Faltas</div>
+                  <div className="mt-1 text-2xl font-semibold text-red-600">{reportData.summary?.absent ?? 0}</div>
+                </div>
+                <div className="rounded-lg border border-gray-200 bg-white p-4">
+                  <div className="text-xs text-gray-500">Justificadas</div>
+                  <div className="mt-1 text-2xl font-semibold text-amber-600">{reportData.summary?.justified ?? 0}</div>
+                </div>
+              </div>
+
+              {/* Gráfico por data */}
+              <ReportChart
+                title="Frequência por Data"
+                categories={(reportData.byDate || []).map((d) => d.date)}
+                series={[
+                  { name: 'Presentes', data: (reportData.byDate || []).map((d) => d.present) },
+                  { name: 'Faltas', data: (reportData.byDate || []).map((d) => d.absent) },
+                  { name: 'Justificadas', data: (reportData.byDate || []).map((d) => d.justified) },
+                ]}
+                type="line"
+                height={320}
+              />
+
+              {/* Tabela por turma */}
+              <ReportTable
+                title="Resumo por Turma"
+                columns={[
+                  { key: 'school_name', label: 'Escola' },
+                  { key: 'class_name', label: 'Turma' },
+                  { key: 'class_code', label: 'Código' },
+                  { key: 'present', label: 'Presentes' },
+                  { key: 'absent', label: 'Faltas' },
+                  { key: 'justified', label: 'Justificadas' },
+                  { key: 'total', label: 'Total' },
+                ]}
+                rows={reportData.byClass || []}
+              />
+
+              {/* Gráfico por disciplina (se existir) */}
+              {(reportData.byDiscipline || []).length > 0 && (
+                <ReportChart
+                  title="Resumo por Disciplina"
+                  categories={(reportData.byDiscipline || []).map((d) => d.discipline_name || String(d.discipline_id))}
+                  series={[
+                    { name: 'Presentes', data: (reportData.byDiscipline || []).map((d) => d.present) },
+                    { name: 'Faltas', data: (reportData.byDiscipline || []).map((d) => d.absent) },
+                    { name: 'Justificadas', data: (reportData.byDiscipline || []).map((d) => d.justified) },
+                  ]}
+                  type="bar"
+                  height={320}
+                  stacked={true}
+                />
+              )}
+            </div>
+          )}
         </div>
       </div>
 
