@@ -36,16 +36,12 @@ class DemoAttendanceSeeder extends Seeder
 
         $this->command->info('Iniciando geração de dados de presença demonstrativos para tenant_id='.$tenantId);
 
-        // Clear previous demo data for this tenant to avoid duplication
-        // Se a coluna 'meta' existir, remover registros anteriores de seed; caso contrário, pular
-        $hasMeta = \Illuminate\Support\Facades\Schema::hasColumn('attendance_records', 'meta');
-        if ($hasMeta) {
-            $deleted = AttendanceRecord::where('tenant_id', $tenantId)
-                ->where('meta', 'like', '%"seed":"demo"%')
-                ->delete();
-            if ($deleted) {
-                $this->command->info("Registros demo anteriores removidos: {$deleted}");
-            }
+        // Remover registros de seed anteriores marcados com note=demo-seed para evitar duplicatas
+        $deletedDemo = AttendanceRecord::where('tenant_id', $tenantId)
+            ->where('note', 'demo-seed')
+            ->delete();
+        if ($deletedDemo) {
+            $this->command->info("Registros demo anteriores removidos (note=demo-seed): {$deletedDemo}");
         }
 
         // Try SED connectivity first, only if config is present to avoid TypeError
@@ -240,13 +236,18 @@ class DemoAttendanceSeeder extends Seeder
                             'status' => $status,
                             'type_ensino' => $teachingType,
                             'user_id' => $user->id,
+                            'note' => 'demo-seed',
                             'created_at' => Carbon::now(),
                             'updated_at' => Carbon::now(),
                         ];
 
                         if (count($toInsert) >= 1500) {
-                            AttendanceRecord::insert($toInsert);
-                            $this->command->info('Inseridos '.count($toInsert).' registros até agora...');
+                            \Illuminate\Support\Facades\DB::table('attendance_records')->upsert(
+                                $toInsert,
+                                ['tenant_id', 'class_code', 'date', 'student_ra', 'discipline_id'],
+                                ['status', 'note', 'user_id', 'school_code', 'school_name', 'class_name', 'type_ensino', 'updated_at']
+                            );
+                            $this->command->info('Upsert de '.count($toInsert).' registros até agora...');
                             $toInsert = [];
                         }
                     }
@@ -255,14 +256,15 @@ class DemoAttendanceSeeder extends Seeder
         }
 
         if (!empty($toInsert)) {
-            AttendanceRecord::insert($toInsert);
-            $this->command->info('Inseridos '.count($toInsert).' registros finais.');
+            \Illuminate\Support\Facades\DB::table('attendance_records')->upsert(
+                $toInsert,
+                ['tenant_id', 'class_code', 'date', 'student_ra', 'discipline_id'],
+                ['status', 'note', 'user_id', 'school_code', 'school_name', 'class_name', 'type_ensino', 'updated_at']
+            );
+            $this->command->info('Upsert de '.count($toInsert).' registros finais.');
         }
 
-        $totalQuery = AttendanceRecord::where('tenant_id', $tenantId);
-        if ($hasMeta) {
-            $totalQuery->where('meta', 'like', '%"seed":"demo"%');
-        }
+        $totalQuery = AttendanceRecord::where('tenant_id', $tenantId)->where('note', 'demo-seed');
         $total = $totalQuery->count();
         $this->command->info("Total de registros demo gerados: {$total}");
     }
