@@ -6,11 +6,13 @@ import ReportChart from '@/Components/ReportChart';
 import ReportTable from '@/Components/ReportTable';
 
 export default function ReportsIndex({ schools = [], disciplines = [], tiposEnsino = [] }) {
-  const [filters, setFilters] = useState({ school: '', discipline: '', tipoEnsino: '', classCode: '' });
-  const [touched, setTouched] = useState({ school: false, discipline: false, tipoEnsino: false, classCode: false });
+  const [filters, setFilters] = useState({ school: '', discipline: '', tipoEnsino: '', classCode: '', startDate: '', endDate: '' });
+  const [touched, setTouched] = useState({ school: false, discipline: false, tipoEnsino: false, classCode: false, startDate: false, endDate: false });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [toast, setToast] = useState(null);
+
+  const currentYear = new Date().getFullYear();
 
   // Turmas (placeholder: serão carregadas após a escola ser selecionada)
   const [classes, setClasses] = useState([]);
@@ -48,7 +50,7 @@ export default function ReportsIndex({ schools = [], disciplines = [], tiposEnsi
       const response = await axios.get(url, {
         params: {
           cod_escola: schoolCode,
-          ano_letivo: String(new Date().getFullYear()),
+          ano_letivo: String(currentYear),
         }
       });
 
@@ -67,16 +69,20 @@ export default function ReportsIndex({ schools = [], disciplines = [], tiposEnsi
 }, [filters.school]);
 
   const clearFilters = () => {
-    setFilters({ school: '', discipline: '', tipoEnsino: '', classCode: '' });
-    setTouched({ school: false, discipline: false, tipoEnsino: false, classCode: false });
+    setFilters({ school: '', discipline: '', tipoEnsino: '', classCode: '', startDate: '', endDate: '' });
+    setTouched({ school: false, discipline: false, tipoEnsino: false, classCode: false, startDate: false, endDate: false });
     setError(null);
   };
 
   const generateReport = async (e) => {
     e.preventDefault();
-    setTouched({ school: true, discipline: true, tipoEnsino: true, classCode: true });
+    setTouched({ school: true, discipline: true, tipoEnsino: true, classCode: true, startDate: true, endDate: true });
     if (!filters.school) {
       setError('Selecione uma escola para continuar.');
+      return;
+    }
+    if (filters.startDate && filters.endDate && new Date(filters.endDate) < new Date(filters.startDate)) {
+      setError('A data final não pode ser anterior à data inicial.');
       return;
     }
     setError(null);
@@ -87,6 +93,9 @@ export default function ReportsIndex({ schools = [], disciplines = [], tiposEnsi
       discipline_ids: filters.discipline ? [parseInt(filters.discipline, 10)] : [],
       tipo_ensino: filters.tipoEnsino ? [filters.tipoEnsino] : [],
       student_ras: [], // filtro futuro
+      school_year: String(currentYear),
+      start_date: filters.startDate || null,
+      end_date: filters.endDate || null,
       dates: [], // sem filtro de datas por enquanto
     };
 
@@ -160,7 +169,7 @@ export default function ReportsIndex({ schools = [], disciplines = [], tiposEnsi
                       ))}
                     </select>
                     <p className={`mt-2 text-xs ${touched.school && !filters.school ? 'text-red-600' : 'text-gray-500'}`}>
-                      {touched.school && !filters.school ? 'Obrigatório.' : 'Escolha a escola alvo do relatório.'}
+                      {touched.school && !filters.school ? 'Obrigatório.' : `Ano letivo: ${currentYear} (aplicado automaticamente).`}
                     </p>
                   </div>
 
@@ -219,6 +228,34 @@ export default function ReportsIndex({ schools = [], disciplines = [], tiposEnsi
                     </select>
                     <p className="mt-2 text-xs text-gray-500">Será habilitado quando uma escola for selecionada.</p>
                   </div>
+
+                  {/* Data inicial */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Data inicial</label>
+                    <input
+                      type="date"
+                      value={filters.startDate}
+                      onChange={(e) => setFilters((prev) => ({ ...prev, startDate: e.target.value }))}
+                      onBlur={() => setTouched((prev) => ({ ...prev, startDate: true }))}
+                      className="w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                    />
+                    <p className="mt-2 text-xs text-gray-500">Opcional. Sempre escopado ao ano letivo {currentYear}.</p>
+                  </div>
+
+                  {/* Data final */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Data final</label>
+                    <input
+                      type="date"
+                      value={filters.endDate}
+                      onChange={(e) => setFilters((prev) => ({ ...prev, endDate: e.target.value }))}
+                      onBlur={() => setTouched((prev) => ({ ...prev, endDate: true }))}
+                      className={`w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 ${touched.endDate && filters.startDate && filters.endDate && new Date(filters.endDate) < new Date(filters.startDate) ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : ''}`}
+                    />
+                    <p className={`mt-2 text-xs ${touched.endDate && filters.startDate && filters.endDate && new Date(filters.endDate) < new Date(filters.startDate) ? 'text-red-600' : 'text-gray-500'}`}>
+                      {touched.endDate && filters.startDate && filters.endDate && new Date(filters.endDate) < new Date(filters.startDate) ? 'A data final não pode ser anterior à inicial.' : `Opcional. Sempre escopado ao ano letivo ${currentYear}.`}
+                    </p>
+                  </div>
                 </div>
 
                 <div className="mt-8 flex items-center gap-3">
@@ -249,7 +286,7 @@ export default function ReportsIndex({ schools = [], disciplines = [], tiposEnsi
               <div className="p-6 flex items-center">
                 <svg className="animate-spin h-5 w-5 text-indigo-600 mr-3" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a 8 8 0 018-8v8H4z"></path>
                 </svg>
                 <span className="text-sm text-gray-700">Gerando relatório, aguarde...</span>
               </div>
@@ -329,6 +366,7 @@ export default function ReportsIndex({ schools = [], disciplines = [], tiposEnsi
                   type="bar"
                   height={320}
                   stacked={true}
+                  columnWidth="20%"
                 />
               )}
             </div>
@@ -347,5 +385,3 @@ export default function ReportsIndex({ schools = [], disciplines = [], tiposEnsi
     </AuthenticatedLayout>
   );
 }
-
-// [Removido] Efeito duplicado; lógica de busca de turmas está dentro do componente.

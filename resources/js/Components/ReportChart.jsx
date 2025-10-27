@@ -1,7 +1,7 @@
 import React from 'react';
 import Chart from 'react-apexcharts';
 
-export default function ReportChart({ title, categories = [], series = [], type = 'bar', height = 320, stacked = false }) {
+export default function ReportChart({ title, categories = [], series = [], type = 'bar', height = 320, stacked = false, columnWidth = '50%' }) {
   const options = {
     chart: {
       type,
@@ -13,7 +13,7 @@ export default function ReportChart({ title, categories = [], series = [], type 
     plotOptions: {
       bar: {
         horizontal: false,
-        columnWidth: '50%',
+        columnWidth: columnWidth,
         borderRadius: 6,
         rangeBarOverlap: stacked,
         rangeBarGroupRows: stacked,

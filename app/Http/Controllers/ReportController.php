@@ -71,10 +71,16 @@ class ReportController extends Controller
             'student_ras.*' => 'string',
             'dates' => 'array',
             'dates.*' => 'date',
+            'school_year' => 'nullable|string|size:4',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
         ]);
 
         $query = AttendanceRecord::query()
             ->where('tenant_id', $tenantId);
+
+        $schoolYear = $validated['school_year'] ?? date('Y');
+        $query->whereYear('date', $schoolYear);
 
         if (!empty($validated['school_codes'])) {
             $query->whereIn('school_code', $validated['school_codes']);
@@ -94,6 +100,11 @@ class ReportController extends Controller
         if (!empty($validated['dates'])) {
             // Se datas específicas forem enviadas, filtrar por elas
             $query->whereIn('date', $validated['dates']);
+        } else {
+            // Aplicar intervalo de datas dentro do ano letivo
+            $rangeStart = !empty($validated['start_date']) ? Carbon::parse($validated['start_date'])->toDateString() : Carbon::createFromDate((int)$schoolYear, 1, 1)->toDateString();
+            $rangeEnd = !empty($validated['end_date']) ? Carbon::parse($validated['end_date'])->toDateString() : Carbon::createFromDate((int)$schoolYear, 12, 31)->toDateString();
+            $query->whereBetween('date', [$rangeStart, $rangeEnd]);
         }
 
         $records = $query->get([
@@ -166,6 +177,9 @@ class ReportController extends Controller
                 'tipo_ensino' => $validated['tipo_ensino'] ?? [],
                 'student_ras' => $validated['student_ras'] ?? [],
                 'dates' => $validated['dates'] ?? [],
+                'school_year' => $schoolYear,
+                'start_date' => $validated['start_date'] ?? null,
+                'end_date' => $validated['end_date'] ?? null,
             ],
             'summary' => [
                 'total' => $total,
