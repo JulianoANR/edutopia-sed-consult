@@ -8,6 +8,8 @@ export default function ConfirmDeleteModal({
   cancelText = 'Cancelar',
   onConfirm = () => {},
   onCancel = () => {},
+  confirmDisabled = false,
+  cancelDisabled = false,
 }) {
   useEffect(() => {
     if (!open) return;
@@ -36,7 +38,7 @@ export default function ConfirmDeleteModal({
         <div className="w-full max-w-md rounded-lg bg-white shadow-xl">
           <div className="px-6 pt-6">
             <div className="flex items-start">
-              <div className="mr-3 flex h-10 w-10 items-center justify-center rounded-full bg-red-100">
+              <div className="mr-3 px-2 flex h-10 w-10 items-center justify-center rounded-full bg-red-100">
                 <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01M5.52 19h12.96A2.52 2.52 0 0021 16.48V7.52A2.52 2.52 0 0018.48 5H5.52A2.52 2.52 0 003 7.52v8.96A2.52 2.52 0 005.52 19z" />
                 </svg>
@@ -54,14 +56,16 @@ export default function ConfirmDeleteModal({
             <button
               type="button"
               onClick={onCancel}
-              className="inline-flex items-center rounded-md bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+              disabled={cancelDisabled}
+              className={`inline-flex items-center rounded-md bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 ${cancelDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               {cancelText}
             </button>
             <button
               type="button"
               onClick={onConfirm}
-              className="inline-flex items-center rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-700"
+              disabled={confirmDisabled}
+              className={`inline-flex items-center rounded-md px-4 py-2 text-sm font-medium text-white shadow-sm ${confirmDisabled ? 'bg-red-400 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700'}`}
             >
               {confirmText}
             </button>

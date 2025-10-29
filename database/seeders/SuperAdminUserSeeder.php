@@ -14,15 +14,17 @@ class SuperAdminUserSeeder extends Seeder
      */
     public function run(): void
     {
-        User::updateOrCreate(
+        $user = User::updateOrCreate(
             ['email' => 'superadmin@edutopia.com'],
             [
                 'name' => 'Super Admin',
                 'password' => Hash::make('superadmin@2025'),
                 'email_verified_at' => now(),
-                'role' => 'super_admin',
                 'tenant_id' => Tenant::first()->id,
             ]
         );
+
+        // Garantir multi-role via tabela user_roles
+        $user->roleLinks()->updateOrCreate(['role' => 'super_admin'], []);
     }
 }

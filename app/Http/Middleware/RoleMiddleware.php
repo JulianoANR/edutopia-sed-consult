@@ -35,7 +35,7 @@ class RoleMiddleware
             $roles = array_map('trim', explode(',', $roles[0]));
         }
 
-        if (!in_array($user->role, $roles, true)) {
+        if (!$user->hasAnyRole($roles)) {
             abort(403, 'Você não tem permissão para acessar esta área.');
         }
 

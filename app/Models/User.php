@@ -35,6 +35,10 @@ class User extends Authenticatable
         'remember_token',
     ];
 
+    protected $appends = [
+        'roles',
+    ];
+
     /**
      * Get the attributes that should be cast.
      *
@@ -48,24 +52,63 @@ class User extends Authenticatable
         ];
     }
 
+    // -------------------------------------------------------------
+    // Roles (multi-role support)
+    // -------------------------------------------------------------
+    public function roleLinks()
+    {
+        return $this->hasMany(\App\Models\UserRole::class);
+    }
+
+    // Expose roles as a simple array for frontend (Inertia serialization)
+    public function getRolesAttribute(): array
+    {
+        // Prefer roleLinks; fall back to single role if not set
+        $roles = $this->roleLinks()->pluck('role')->all();
+        if (empty($roles) && $this->role) {
+            $roles = [$this->role];
+        }
+        return $roles;
+    }
+
+    public function hasRole(string $role): bool
+    {
+        // Accept the legacy single role for backward compatibility
+        if ($this->role && $this->role === $role) {
+            return true;
+        }
+        return $this->roleLinks()->where('role', $role)->exists();
+    }
+
+    public function hasAnyRole(array|string $roles): bool
+    {
+        $roles = is_array($roles) ? $roles : array_map('trim', explode(',', $roles));
+        foreach ($roles as $role) {
+            if ($this->hasRole($role)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public function isAdmin(): bool
     {
-        return $this->role === 'admin';
+        return $this->hasRole('admin');
     }
 
     public function isGestor(): bool
     {
-        return $this->role === 'gestor';
+        return $this->hasRole('gestor');
     }
 
     public function isProfessor(): bool
     {
-        return $this->role === 'professor';
+        return $this->hasRole('professor');
     }
 
     public function isSuperAdmin(): bool
     {
-        return $this->role === 'super_admin';
+        return $this->hasRole('super_admin');
     }
 
     public function links()

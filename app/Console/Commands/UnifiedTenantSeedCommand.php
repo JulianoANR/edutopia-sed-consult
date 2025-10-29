@@ -108,10 +108,11 @@ class UnifiedTenantSeedCommand extends Command
                     'name' => $disc->name.' - '.$tenantName.' Professor',
                     'password' => Hash::make($slugTenant.'professor@2025'),
                     'email_verified_at' => now(),
-                    'role' => 'professor',
                     'tenant_id' => $tenantId,
                 ]
             );
+            // Garantir role via tabela user_roles
+            $prof->roleLinks()->updateOrCreate(['role' => 'professor'], []);
 
             foreach ($classesCodes as $classCode) {
                 $classInfo = null;

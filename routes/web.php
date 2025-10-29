@@ -77,12 +77,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', function () {
 
 
-        // Se role igual professor
-        if (Auth::user()->role == 'professor') {
+        // Se tem a role professor
+        if (user_has_role(Auth::user(), 'professor')) {
             return redirect()->route('classes.my');
         }
 
-        // Se role professor 
+        // Caso contrário, direciona para escolas
         return redirect()->route('schools.index');
     })->name('dashboard');
 
@@ -121,6 +121,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/teacher-links', [\App\Http\Controllers\TeacherLinkController::class, 'store'])->name('teacher_links.store');
         Route::put('/teacher-links/{link}', [\App\Http\Controllers\TeacherLinkController::class, 'update'])->name('teacher_links.update');
         Route::delete('/teacher-links/{link}', [\App\Http\Controllers\TeacherLinkController::class, 'destroy'])->name('teacher_links.destroy');
+
+        // Manager links (gestor-escola)
+        Route::get('/manager-links/{schoolCode?}', [\App\Http\Controllers\ManagerLinkController::class, 'index'])->name('manager_links.index');
+        Route::post('/manager-links', [\App\Http\Controllers\ManagerLinkController::class, 'store'])->name('manager_links.store');
+        Route::delete('/manager-links/{link}', [\App\Http\Controllers\ManagerLinkController::class, 'destroy'])->name('manager_links.destroy');
 
         // reports
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');

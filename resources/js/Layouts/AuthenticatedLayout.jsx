@@ -25,7 +25,7 @@ export default function AuthenticatedLayout({ header, children }) {
 
                             <div className="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
 
-                                {['admin','gestor','super_admin'].includes(user.role) && (
+                                {Array.isArray(user.roles) && user.roles.some((r) => ['admin','gestor','super_admin'].includes(r)) && (
                                     <>
                                         <NavLink
                                             href={route('dashboard')}
@@ -46,6 +46,12 @@ export default function AuthenticatedLayout({ header, children }) {
                                             Vínculos
                                         </NavLink>
                                         <NavLink
+                                            href={route('manager_links.index')}
+                                            active={route().current('manager_links.index')}
+                                        >
+                                            Gestores
+                                        </NavLink>
+                                        <NavLink
                                             href={route('reports.index')}
                                             active={route().current('reports.index')}
                                         >
@@ -53,7 +59,7 @@ export default function AuthenticatedLayout({ header, children }) {
                                         </NavLink>
                                     </>
                                 )}
-                                {user.role === 'super_admin' && (
+                                {Array.isArray(user.roles) && user.roles.includes('super_admin') && (
                                     <NavLink
                                         href={route('tenants.index')}
                                         active={route().current('tenants.index')}
@@ -165,7 +171,7 @@ export default function AuthenticatedLayout({ header, children }) {
                         >
                             Dashboard
                         </ResponsiveNavLink>
-                        {['admin','gestor'].includes(user.role) && (
+                        {Array.isArray(user.roles) && user.roles.some((r) => ['admin','gestor'].includes(r)) && (
                             <>
                                 <ResponsiveNavLink
                                     href={route('disciplines.index')}
@@ -179,9 +185,15 @@ export default function AuthenticatedLayout({ header, children }) {
                                 >
                                     Vínculos
                                 </ResponsiveNavLink>
+                                <ResponsiveNavLink
+                                    href={route('manager_links.index')}
+                                    active={route().current('manager_links.index')}
+                                >
+                                    Gestores
+                                </ResponsiveNavLink>
                             </>
                         )}
-                        {user.role === 'super_admin' && (
+                        {Array.isArray(user.roles) && user.roles.includes('super_admin') && (
                             <ResponsiveNavLink
                                 href={route('tenants.index')}
                                 active={route().current('tenants.index')}

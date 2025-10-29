@@ -35,7 +35,7 @@ class AttendanceController extends Controller
         // Disciplinas disponíveis para o usuário nesta turma
         $user = $request->user();
         $tenantId = $user->tenant_id;
-        $isAdmin = ($user->role ?? null) === 'admin';
+        $isAdmin = user_has_role($user, 'admin');
         $links = \App\Models\TeacherClassDisciplineLink::with('discipline')
             ->where('tenant_id', $tenantId)
             ->where('user_id', $user->id)
@@ -73,7 +73,7 @@ class AttendanceController extends Controller
             'selectedSchool' => $selectedSchool,
             'today' => Carbon::today()->toDateString(),
             'disciplines' => $availableDisciplines,
-            'userRole' => $user->role,
+            'userRole' => $user->role, // legacy: still passing single role if needed by frontend
         ]);
     }
 
@@ -91,7 +91,7 @@ class AttendanceController extends Controller
         // Validar acesso do professor à disciplina/turma via TeacherClassDisciplineLink
         $user = $request->user();
         $tenantId = $user->tenant_id;
-        $isAdmin = ($user->role ?? null) === 'admin';
+        $isAdmin = user_has_role($user, 'admin');
         $links = \App\Models\TeacherClassDisciplineLink::where('tenant_id', $tenantId)
             ->where('user_id', $user->id)
             ->where('class_code', $classCode)
@@ -207,7 +207,7 @@ class AttendanceController extends Controller
         // Validar acesso do professor à disciplina/turma via TeacherClassDisciplineLink
         $user = $request->user();
         $tenantId = $user->tenant_id;
-        $isAdmin = ($user->role ?? null) === 'admin';
+        $isAdmin = user_has_role($user, 'admin');
         $links = \App\Models\TeacherClassDisciplineLink::where('tenant_id', $tenantId)
             ->where('user_id', $user->id)
             ->where('class_code', $classCode)

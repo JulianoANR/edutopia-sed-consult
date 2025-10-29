@@ -26,8 +26,16 @@ class TeacherLinkController extends Controller
         $user = Auth::user();
         $tenantId = $user?->tenant_id;
 
-        $links = TeacherClassDisciplineLink::with(['user','discipline'])->where('tenant_id', $tenantId)->where('school_code', $schoolCode)->orderBy('user_id')->get();
-        $teachers = User::where('role', 'professor')->where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name', 'email']);
+        $links = TeacherClassDisciplineLink::with(['user','discipline'])
+            ->where('tenant_id', $tenantId)
+            ->where('school_code', $schoolCode)
+            ->orderBy('user_id')
+            ->get();
+        // Multi-role: buscar professores via relação user_roles
+        $teachers = User::where('tenant_id', $tenantId)
+            ->whereHas('roleLinks', function ($q) { $q->where('role', 'professor'); })
+            ->orderBy('name')
+            ->get(['id', 'name', 'email']);
         $disciplines = Discipline::where('tenant_id', $tenantId)->orderBy('name')->get(['id','name','code']);
         
         return Inertia::render('TeacherLinks/Index', compact('links','teachers','disciplines','selectedSchool'));

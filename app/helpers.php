@@ -68,3 +68,48 @@ if (!function_exists('getTodosTiposEnsino')) {
         return TipoEnsinoHelper::getTodosTiposEnsino();
     }
 }
+
+// -------------------------------------------------------------
+// Helpers de Roles (multi-role)
+// -------------------------------------------------------------
+use App\Models\User as UserModel;
+
+if (!function_exists('user_has_role')) {
+    /**
+     * Verifica se o usuário possui uma role específica.
+     * Faz fallback para o campo legado users.role se necessário.
+     */
+    function user_has_role($user, string $role): bool
+    {
+        if (!$user) {
+            return false;
+        }
+        // Se for instância do nosso modelo, usa o helper do model
+        if ($user instanceof UserModel) {
+            return $user->hasRole($role);
+        }
+        // Fallback robusto: recarrega o usuário como Eloquent e verifica
+        $eloquentUser = UserModel::with('roleLinks')->find(optional($user)->id);
+        if ($eloquentUser) {
+            return $eloquentUser->hasRole($role);
+        }
+        // Último recurso: checa propriedade legado 'role'
+        return (optional($user)->role) === $role;
+    }
+}
+
+if (!function_exists('user_has_any_role')) {
+    /**
+     * Verifica se o usuário possui qualquer role da lista.
+     */
+    function user_has_any_role($user, array|string $roles): bool
+    {
+        $roles = is_array($roles) ? $roles : array_map('trim', explode(',', $roles));
+        foreach ($roles as $role) {
+            if (user_has_role($user, $role)) {
+                return true;
+            }
+        }
+        return false;
+    }
+}
