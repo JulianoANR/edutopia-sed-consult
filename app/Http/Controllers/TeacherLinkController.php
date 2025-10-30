@@ -25,10 +25,12 @@ class TeacherLinkController extends Controller
         
         $user = Auth::user();
         $tenantId = $user?->tenant_id;
+        // Se não houver schoolCode na rota, usa a escola selecionada na sessão
+        $schoolCode = $schoolCode ?? ($selectedSchool['id'] ?? null);
 
         $links = TeacherClassDisciplineLink::with(['user','discipline'])
             ->where('tenant_id', $tenantId)
-            ->where('school_code', $schoolCode)
+            ->when($schoolCode, fn($q) => $q->where('school_code', $schoolCode))
             ->orderBy('user_id')
             ->get();
         // Multi-role: buscar professores via relação user_roles

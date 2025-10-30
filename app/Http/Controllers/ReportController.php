@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AttendanceRecord;
 use App\Models\Discipline;
+use App\Models\ManagerSchoolLink;
 use App\Services\SedEscolasService;
 use App\Services\SedTurmasService;
 use Illuminate\Http\Request;
@@ -32,9 +33,30 @@ class ReportController extends Controller
     {
         $user = $request->user();
 
-        $schools = $this->sedEscolasService->getEscolasPorMunicipio();
+        $schoolsData = $this->sedEscolasService->getEscolasPorMunicipio();
+        $schools = $schoolsData['outEscolas'] ?? [];
         $disciplines = Discipline::all();
+       
+        if ($user && user_has_role($user, 'gestor') && !user_has_role($user, 'admin') && !user_has_role($user, 'super_admin')) {
+            $tenantId = $user->tenant_id;
+            $allowedCodes = ManagerSchoolLink::where('tenant_id', $tenantId)
+                ->where('user_id', $user->id)
+                ->pluck('school_code')
+                ->filter()
+                ->map(fn($c) => (string) $c)
+                ->unique()
+                ->values()
+                ->toArray();
 
+            $schools = collect($schools)
+                ->filter(function ($s) use ($allowedCodes) {
+                    $code = is_array($s) ? ($s['outCodEscola'] ?? null) : (optional($s)->outCodEscola ?? null);
+                    return in_array((string) $code, $allowedCodes, true);
+                })
+                ->values()
+                ->all();
+
+        }
 
         $tiposEnsino = [
             'Educação Básica',
@@ -43,7 +65,7 @@ class ReportController extends Controller
         ];
       
         return Inertia::render('Reports/Index', [
-            'schools' => $schools['outEscolas'] ?? [],
+            'schools' => $schools,
             'disciplines' => $disciplines,
             'tiposEnsino' => $tiposEnsino,
         ]);

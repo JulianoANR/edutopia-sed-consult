@@ -13,6 +13,8 @@ use App\Services\SedAlunosService;
 use App\Exceptions\SedApiException;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
+use App\Models\ManagerSchoolLink;
 use App\Exports\StudentsExport;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -68,6 +70,25 @@ class SchoolController extends Controller
                         'outDescUF' => 'SP'
                     ]
                 ];
+
+                // Filtrar por vínculos do gestor quando não for admin/super_admin
+                $user = $request->user();
+                if ($user && user_has_role($user, 'gestor') && !user_has_role($user, 'admin') && !user_has_role($user, 'super_admin')) {
+                    $tenantId = $user->tenant_id;
+                    $allowedCodes = ManagerSchoolLink::where('tenant_id', $tenantId)
+                        ->where('user_id', $user->id)
+                        ->pluck('school_code')
+                        ->filter()
+                        ->map(fn($c) => (string) $c)
+                        ->unique()
+                        ->values()
+                        ->toArray();
+
+                    $testSchools = collect($testSchools)
+                        ->filter(fn($s) => in_array((string) ($s['outCodEscola'] ?? ''), $allowedCodes, true))
+                        ->values()
+                        ->all();
+                }
                 
                 return Inertia::render('Schools/Index', [
                     'schools' => $testSchools,
@@ -80,6 +101,28 @@ class SchoolController extends Controller
             // Busca escolas por município via API SED
             $schoolsData = $this->sedEscolasService->getEscolasPorMunicipio(null, null, $redeEnsinoId);
             $schools = $schoolsData['outEscolas'] ?? [];
+
+            // Filtrar por vínculos do gestor quando não for admin/super_admin
+            $user = $request->user();
+            if ($user && user_has_role($user, 'gestor') && !user_has_role($user, 'admin') && !user_has_role($user, 'super_admin')) {
+                $tenantId = $user->tenant_id;
+                $allowedCodes = ManagerSchoolLink::where('tenant_id', $tenantId)
+                    ->where('user_id', $user->id)
+                    ->pluck('school_code')
+                    ->filter()
+                    ->map(fn($c) => (string) $c)
+                    ->unique()
+                    ->values()
+                    ->toArray();
+
+                $schools = collect($schools)
+                    ->filter(function ($s) use ($allowedCodes) {
+                        $code = is_array($s) ? ($s['outCodEscola'] ?? null) : (optional($s)->outCodEscola ?? null);
+                        return in_array((string) $code, $allowedCodes, true);
+                    })
+                    ->values()
+                    ->all();
+            }
             
             // Verifica se há uma escola selecionada na sessão
             $selectedSchool = Session::get('selected_school');

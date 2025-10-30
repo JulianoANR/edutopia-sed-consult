@@ -25,7 +25,7 @@ class AdminUserSeeder extends Seeder
                 ['email' => $slug.'@admin.com'],
                 [
                     'name' => $tenant->name.' Admin',
-                    'password' => Hash::make($slug.'@2025'),
+                    'password' => Hash::make('edutopia@2025'),
                     'email_verified_at' => now(),
                     'tenant_id' => $tenant->id,
                 ]
@@ -37,7 +37,7 @@ class AdminUserSeeder extends Seeder
                 ['email' => $slug.'@gestor.com'],
                 [
                     'name' => $tenant->name.' Gestor',
-                    'password' => Hash::make($slug.'gestor@2025'),
+                    'password' => Hash::make('edutopia@2025'),
                     'email_verified_at' => now(),
                     'tenant_id' => $tenant->id,
                 ]
@@ -45,13 +45,13 @@ class AdminUserSeeder extends Seeder
             $gestor->roleLinks()->updateOrCreate(['role' => 'gestor'], []);
 
             // jacarei@professor.com
-            // jacareiprofessor@2025
+            // edutopia@2025
             // Professor
             $professor = User::updateOrCreate(
                 ['email' => $slug.'@professor.com'],
                 [
                     'name' => $tenant->name.' Professor',
-                    'password' => Hash::make($slug.'professor@2025'),
+                    'password' => Hash::make('edutopia@2025'),
                     'email_verified_at' => now(),
                     'tenant_id' => $tenant->id,
                 ]

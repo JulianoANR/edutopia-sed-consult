@@ -4,12 +4,16 @@ import NavLink from '@/Components/NavLink';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink';
 import { Link, usePage } from '@inertiajs/react';
 import { useState } from 'react';
+import { NAV_ITEMS, hasAnyRole } from '@/config/nav';
 
 export default function AuthenticatedLayout({ header, children }) {
     const user = usePage().props.auth.user;
 
     const [showingNavigationDropdown, setShowingNavigationDropdown] =
         useState(false);
+
+    const roles = Array.isArray(user?.roles) ? user.roles : [];
+    const visibleNavItems = NAV_ITEMS.filter((item) => hasAnyRole(roles, item.rolesAny));
 
     return (
         <div className="min-h-screen bg-gray-100">
@@ -24,49 +28,15 @@ export default function AuthenticatedLayout({ header, children }) {
                             </div>
 
                             <div className="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-
-                                {Array.isArray(user.roles) && user.roles.some((r) => ['admin','gestor','super_admin'].includes(r)) && (
-                                    <>
-                                        <NavLink
-                                            href={route('dashboard')}
-                                            active={route().current('dashboard')}
-                                        >
-                                            Escolas
-                                        </NavLink>
-                                        <NavLink
-                                            href={route('disciplines.index')}
-                                            active={route().current('disciplines.index')}
-                                        >
-                                            Disciplinas
-                                        </NavLink>
-                                        <NavLink
-                                            href={route('teacher_links.index')}
-                                            active={route().current('teacher_links.index')}
-                                        >
-                                            Vínculos
-                                        </NavLink>
-                                        <NavLink
-                                            href={route('manager_links.index')}
-                                            active={route().current('manager_links.index')}
-                                        >
-                                            Gestores
-                                        </NavLink>
-                                        <NavLink
-                                            href={route('reports.index')}
-                                            active={route().current('reports.index')}
-                                        >
-                                            Relatórios
-                                        </NavLink>
-                                    </>
-                                )}
-                                {Array.isArray(user.roles) && user.roles.includes('super_admin') && (
+                                {visibleNavItems.map(({ key, label, route: routeName }) => (
                                     <NavLink
-                                        href={route('tenants.index')}
-                                        active={route().current('tenants.index')}
+                                        key={key}
+                                        href={route(routeName)}
+                                        active={route().current(routeName)}
                                     >
-                                        Integrações SED
+                                        {label}
                                     </NavLink>
-                                )}
+                                ))}
                             </div>
                         </div>
 
@@ -165,42 +135,15 @@ export default function AuthenticatedLayout({ header, children }) {
                     }
                 >
                     <div className="space-y-1 pb-3 pt-2">
-                        <ResponsiveNavLink
-                            href={route('dashboard')}
-                            active={route().current('dashboard')}
-                        >
-                            Dashboard
-                        </ResponsiveNavLink>
-                        {Array.isArray(user.roles) && user.roles.some((r) => ['admin','gestor'].includes(r)) && (
-                            <>
-                                <ResponsiveNavLink
-                                    href={route('disciplines.index')}
-                                    active={route().current('disciplines.index')}
-                                >
-                                    Disciplinas
-                                </ResponsiveNavLink>
-                                <ResponsiveNavLink
-                                    href={route('teacher_links.index')}
-                                    active={route().current('teacher_links.index')}
-                                >
-                                    Vínculos
-                                </ResponsiveNavLink>
-                                <ResponsiveNavLink
-                                    href={route('manager_links.index')}
-                                    active={route().current('manager_links.index')}
-                                >
-                                    Gestores
-                                </ResponsiveNavLink>
-                            </>
-                        )}
-                        {Array.isArray(user.roles) && user.roles.includes('super_admin') && (
+                        {visibleNavItems.map(({ key, label, route: routeName }) => (
                             <ResponsiveNavLink
-                                href={route('tenants.index')}
-                                active={route().current('tenants.index')}
+                                key={key}
+                                href={route(routeName)}
+                                active={route().current(routeName)}
                             >
-                                Integrações SED
+                                {label}
                             </ResponsiveNavLink>
-                        )}
+                        ))}
                     </div>
 
                     <div className="border-t border-gray-200 pb-1 pt-4">

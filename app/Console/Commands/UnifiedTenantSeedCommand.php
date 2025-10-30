@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Models\ManagerSchoolLink;
 use App\Models\Discipline;
 use App\Models\TeacherClassDisciplineLink;
 use App\Models\AttendanceRecord;
@@ -16,7 +17,7 @@ use App\Helpers\TipoEnsinoHelper;
 
 class UnifiedTenantSeedCommand extends Command
 {
-    protected $signature = 'seed:unified {tenant=Jacarei} {--school=447523} {--school-name="ADELIA MONTEIRO PROFA EMEF"} {--classes=292814696,292815289,295752562} {--days=8}';
+    protected $signature = 'seed:unified {tenant=Jacarei} {--school=447523} {--school-name="ADELIA MONTEIRO PROFA EMEF"} {--classes=292814696,292815289,295752562} {--days=8} {--password=edutopia@2025}';
     protected $description = 'Unifica seeders: cria disciplinas, professores, vínculos e frequências para um tenant específico.';
 
     public function handle(): int
@@ -26,6 +27,7 @@ class UnifiedTenantSeedCommand extends Command
         $schoolName = (string) $this->option('school-name');
         $classesOpt = (string) $this->option('classes');
         $days = (int) $this->option('days');
+        $passwordPlain = (string) $this->option('password');
 
         $schoolCode = preg_replace('/[^0-9]/', '', $schoolCodeOpt) ?: $schoolCodeOpt;
         $classesCodes = array_values(array_filter(array_map('trim', explode(',', $classesOpt))));
@@ -38,11 +40,44 @@ class UnifiedTenantSeedCommand extends Command
         $tenantId = $tenant->id;
         $slugTenant = $this->slugify($tenantName);
 
-        // Tentar setar um usuário autenticado para habilitar SED via credentials do tenant
-        $gestorEmailSlug = $slugTenant.'@gestor.com';
-        $gestorEmailRaw = $tenantName.'@gestor.com';
-        $gestor = User::where('email', $gestorEmailSlug)->orWhere('email', $gestorEmailRaw)->first();
-        $admin = User::where('email', $slugTenant.'@admin.com')->orWhere('email', $tenantName.'@admin.com')->first();
+        // Garantir usuários base no novo padrão de multi-role
+        $admin = User::updateOrCreate(
+            ['email' => $slugTenant.'@admin.com'],
+            [
+                'name' => $tenantName.' Admin',
+                'password' => Hash::make($passwordPlain),
+                'email_verified_at' => now(),
+                'tenant_id' => $tenantId,
+            ]
+        );
+        $admin->roleLinks()->updateOrCreate(['role' => 'admin'], []);
+
+        $gestor = User::updateOrCreate(
+            ['email' => $slugTenant.'@gestor.com'],
+            [
+                'name' => $tenantName.' Gestor',
+                'password' => Hash::make($passwordPlain),
+                'email_verified_at' => now(),
+                'tenant_id' => $tenantId,
+            ]
+        );
+        $gestor->roleLinks()->updateOrCreate(['role' => 'gestor'], []);
+
+        // Vincular o gestor à escola informada (novo padrão gestor-escola)
+        if (!empty($schoolCode)) {
+            ManagerSchoolLink::updateOrCreate(
+                [
+                    'tenant_id' => $tenantId,
+                    'user_id' => $gestor->id,
+                    'school_code' => (string) $schoolCode,
+                ],
+                [
+                    'school_name' => $schoolName,
+                ]
+            );
+        }
+
+        // Tentar setar um usuário autenticado para habilitar SED via credentials do tenant (prioriza gestor)
         $authUser = $gestor ?: $admin ?: User::where('tenant_id', $tenantId)->first();
         if ($authUser) {
             Auth::setUser($authUser);
@@ -106,7 +141,7 @@ class UnifiedTenantSeedCommand extends Command
                 ['email' => $email],
                 [
                     'name' => $disc->name.' - '.$tenantName.' Professor',
-                    'password' => Hash::make($slugTenant.'professor@2025'),
+                    'password' => Hash::make($passwordPlain),
                     'email_verified_at' => now(),
                     'tenant_id' => $tenantId,
                 ]
