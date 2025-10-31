@@ -4,33 +4,20 @@ window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 // Garantir que o Laravel retorne respostas de validação em JSON
 window.axios.defaults.headers.common['Accept'] = 'application/json';
 
-// Configurar token CSRF
-let token = document.head.querySelector('meta[name="csrf-token"]');
+// Usar proteção CSRF baseada em cookie (recomendada para SPAs com Inertia)
+// O axios lerá o cookie `XSRF-TOKEN` e o enviará no header `X-XSRF-TOKEN`
+window.axios.defaults.xsrfCookieName = 'XSRF-TOKEN';
+window.axios.defaults.xsrfHeaderName = 'X-XSRF-TOKEN';
 
-if (token) {
-    window.axios.defaults.headers.common['X-CSRF-TOKEN'] = token.content;
-} else {
-    console.error('CSRF token not found: https://laravel.com/docs/csrf#csrf-x-csrf-token');
-}
+// Não fixar o header 'X-CSRF-TOKEN' a partir da meta tag.
+// Isso evita inconsistência quando o token é regenerado sem reload completo.
 
-// Interceptor de resposta para capturar erro 419 (CSRF Token Mismatch)
+// Interceptor de resposta: manter padrão, sem reload automático em 419
 window.axios.interceptors.response.use(
-    // Função para respostas bem-sucedidas
     function (response) {
         return response;
     },
-    // Função para tratar erros
     function (error) {
-        // Verifica se o erro é 419 (CSRF Token Mismatch)
-        if (error.response && error.response.status === 419) {
-            // CSRF Token Mismatch - recarrega a página silenciosamente
-            window.location.reload();
-            
-            // Retorna uma promise que nunca resolve nem rejeita para evitar que o erro continue se propagando
-            return new Promise(() => {}); // Promise que nunca resolve nem rejeita
-        }
-        
-        // Para outros erros, apenas repassa o erro original
         return Promise.reject(error);
     }
 );

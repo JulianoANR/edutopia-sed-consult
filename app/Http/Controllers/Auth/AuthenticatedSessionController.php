@@ -33,7 +33,7 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        return redirect()->intended(route('dashboard', [], false));
     }
 
     /**
@@ -56,13 +56,12 @@ class AuthenticatedSessionController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
         
-        // Limpar cookies de sessão adicionais
-        $this->clearSessionCookies($request);
+        // Não limpar cookies manualmente; o fluxo padrão acima é suficiente.
         
         // Limpar qualquer cache adicional do Laravel
         $this->clearLaravelCaches();
 
-        return redirect('/');
+        return redirect()->route('login');
     }
 
     /**
@@ -127,7 +126,7 @@ class AuthenticatedSessionController extends Controller
             }
             
             // Limpar cookie CSRF
-            cookie()->queue(cookie()->forget('XSRF-TOKEN'));
+            // cookie()->queue(cookie()->forget('XSRF-TOKEN'));
             
             // Limpar outros cookies relacionados à autenticação
             cookie()->queue(cookie()->forget('laravel_session'));
