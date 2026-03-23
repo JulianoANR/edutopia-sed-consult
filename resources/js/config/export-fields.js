@@ -341,13 +341,13 @@ export const EXPORT_FIELDS = [
             if (!Array.isArray(telefones) || telefones.length === 0) return '';
             
             const phones = telefones.map(telefone => {
-                let phone = telefone.outTelefone || '';
+                let phone = telefone.outNumero || '';
                 let ddd = telefone.outDDDNumero || '';
                 if (ddd) {
-                    phone = '(' + ddd + ')' + phone;
+                    phone = '(' + ddd + ') ' + phone;
                 }
-                if (telefone.outTipoTelefone) {
-                    phone += ' (' + telefone.outTipoTelefone + ')';
+                if (telefone.outDescTipoTelefone) {
+                    phone += ' (' + telefone.outDescTipoTelefone + ')';
                 }
                 return phone;
             }).filter(phone => phone.trim() !== '');

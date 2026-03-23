@@ -344,8 +344,10 @@ class StudentsExport
                     
                     $telefones = [];
                     foreach ($data['outTelefones'] as $telefone) {
-                        if (isset($telefone['outNumTelefone']) && !empty($telefone['outNumTelefone'])) {
-                            $telefones[] = $telefone['outNumTelefone'];
+                        $ddd = $telefone['outDDDNumero'] ?? '';
+                        $num = $telefone['outNumero'] ?? '';
+                        if (!empty($num)) {
+                            $telefones[] = $ddd ? "({$ddd}) {$num}" : $num;
                         }
                     }
                     
@@ -724,8 +726,10 @@ class StudentsExport
                 if (is_array($value)) {
                     $phones = [];
                     foreach ($value as $phone) {
-                        if (isset($phone['outNumTelefone'])) {
-                            $phones[] = $this->formatPhone($phone['outNumTelefone']);
+                        $ddd = $phone['outDDDNumero'] ?? '';
+                        $num = $phone['outNumero'] ?? '';
+                        if (!empty($num)) {
+                            $phones[] = $ddd ? "({$ddd}) {$num}" : $num;
                         }
                     }
                     return implode(', ', $phones);
