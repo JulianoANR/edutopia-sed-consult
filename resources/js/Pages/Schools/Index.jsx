@@ -5,13 +5,14 @@ import { router } from '@inertiajs/react';
 import axios from 'axios';
 
 export default function SchoolsIndex({ schools, selectedSchool, connectionStatus, redeEnsinoId }) {
-    const [loading, setLoading] = useState(false);
+    const [loadingSchool, setLoadingSchool] = useState(null);
     const [testingConnection, setTestingConnection] = useState(false);
     const [connectionResult, setConnectionResult] = useState(connectionStatus);
     const [searchTerm, setSearchTerm] = useState('');
     const [filteredSchools, setFilteredSchools] = useState(schools);
     const [selectedRedeEnsino, setSelectedRedeEnsino] = useState(redeEnsinoId || 2);
     const [loadingRedeEnsino, setLoadingRedeEnsino] = useState(false);
+    const [selectedForExport, setSelectedForExport] = useState(new Set());
 
     const redesEnsino = [
         { value: 1, label: 'Estadual', icon: '🏛️' },
@@ -27,25 +28,20 @@ export default function SchoolsIndex({ schools, selectedSchool, connectionStatus
     }, [schools]);
 
     const handleSelectSchool = async (school) => {
-        setLoading(true);
+        setLoadingSchool(school.outCodEscola);
         try {
             await axios.post('/schools/select', {
                 school_id: school.outCodEscola,
                 school_name: school.outDescNomeEscola
             });
-            
-            // Redireciona para os detalhes da escola
             router.visit(`/schools/view/${school.outCodEscola}/${selectedRedeEnsino}`);
         } catch (error) {
             console.error('Erro ao selecionar escola:', error);
-            
-            // Não exibe alert se for erro 419 (CSRF Token Mismatch) 
-            // pois o interceptor já vai recarregar a página
             if (error.response?.status !== 419) {
                 alert('Erro ao selecionar escola: ' + (error.response?.data?.message || error.message));
             }
         } finally {
-            setLoading(false);
+            setLoadingSchool(null);
         }
     };
 
@@ -75,6 +71,19 @@ export default function SchoolsIndex({ schools, selectedSchool, connectionStatus
             );
             setFilteredSchools(filtered);
         }
+    };
+
+    const toggleExportSelection = (e, school) => {
+        e.stopPropagation();
+        setSelectedForExport(prev => {
+            const next = new Set(prev);
+            if (next.has(school.outCodEscola)) {
+                next.delete(school.outCodEscola);
+            } else {
+                next.add(school.outCodEscola);
+            }
+            return next;
+        });
     };
 
     const handleRedeEnsinoChange = (value) => {
@@ -207,8 +216,8 @@ export default function SchoolsIndex({ schools, selectedSchool, connectionStatus
                     </div>
 
                     {/* Busca */}
-                    <div className="mb-6">
-                        <div className="max-w-md">
+                    <div className="mb-6 flex items-end justify-between gap-4">
+                        <div className="max-w-md flex-1">
                             <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-2">
                                 Buscar Escola
                             </label>
@@ -221,10 +230,64 @@ export default function SchoolsIndex({ schools, selectedSchool, connectionStatus
                                 className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                             />
                         </div>
+                        <button
+                            type="button"
+                            disabled={selectedForExport.size === 0}
+                            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors ${
+                                selectedForExport.size > 0
+                                    ? 'bg-green-600 text-white hover:bg-green-700 cursor-pointer'
+                                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                            }`}
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            Exportar Alunos{selectedForExport.size > 0 && ` (${selectedForExport.size})`}
+                        </button>
                     </div>
 
                     {/* Lista de Escolas */}
-                    <div className="bg-white shadow-sm sm:rounded-lg">
+                    <div className="bg-white shadow-sm sm:rounded-lg pt-2">
+                        {filteredSchools.length > 0 && (
+                            <div className="flex items-center justify-between px-6 py-3 border-b border-gray-100">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const allSelected = filteredSchools.every(s => selectedForExport.has(s.outCodEscola));
+                                        if (allSelected) {
+                                            setSelectedForExport(new Set());
+                                        } else {
+                                            setSelectedForExport(new Set(filteredSchools.map(s => s.outCodEscola)));
+                                        }
+                                    }}
+                                    className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
+                                >
+                                    <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+                                        filteredSchools.every(s => selectedForExport.has(s.outCodEscola))
+                                            ? 'bg-green-500 border-green-500'
+                                            : filteredSchools.some(s => selectedForExport.has(s.outCodEscola))
+                                                ? 'bg-green-200 border-green-400'
+                                                : 'bg-white border-gray-300'
+                                    }`}>
+                                        {filteredSchools.every(s => selectedForExport.has(s.outCodEscola)) && (
+                                            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                            </svg>
+                                        )}
+                                        {!filteredSchools.every(s => selectedForExport.has(s.outCodEscola)) && filteredSchools.some(s => selectedForExport.has(s.outCodEscola)) && (
+                                            <div className="w-2 h-0.5 bg-green-600 rounded" />
+                                        )}
+                                    </div>
+                                    {filteredSchools.every(s => selectedForExport.has(s.outCodEscola))
+                                        ? 'Desmarcar todas'
+                                        : 'Selecionar todas'}
+                                </button>
+                                <span className="text-xs text-gray-400">
+                                    {filteredSchools.length} escola{filteredSchools.length !== 1 ? 's' : ''}
+                                    {selectedForExport.size > 0 && ` · ${selectedForExport.size} selecionada${selectedForExport.size !== 1 ? 's' : ''}`}
+                                </span>
+                            </div>
+                        )}
                         <div className="px-4 py-5 sm:p-6">
                             {filteredSchools.length === 0 ? (
                                 <div className="text-center py-12">
@@ -245,33 +308,40 @@ export default function SchoolsIndex({ schools, selectedSchool, connectionStatus
                                         <div
                                             key={school.outCodEscola}
                                             className={`relative rounded-lg border-2 p-6 cursor-pointer transition-all hover:shadow-md ${
-                                                selectedSchool?.outCodEscola === school.outCodEscola
-                                                    ? 'border-indigo-500 bg-indigo-50'
-                                                    : 'border-gray-200 hover:border-indigo-300'
+                                                selectedForExport.has(school.outCodEscola)
+                                                    ? 'border-green-500 bg-green-50'
+                                                    : selectedSchool?.outCodEscola === school.outCodEscola
+                                                        ? 'border-indigo-500 bg-indigo-50'
+                                                        : 'border-gray-200 hover:border-gray-300'
                                             }`}
-                                            onClick={() => handleSelectSchool(school)}
+                                            onClick={(e) => toggleExportSelection(e, school)}
                                         >
-                                            {selectedSchool?.outCodEscola === school.outCodEscola && (
-                                                <div className="absolute top-2 right-2">
-                                                    <div className="w-6 h-6 bg-indigo-500 rounded-full flex items-center justify-center">
-                                                        <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                            {/* Checkbox de seleção para exportação */}
+                                            <div className="absolute top-3 right-3">
+                                                <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+                                                    selectedForExport.has(school.outCodEscola)
+                                                        ? 'bg-green-500 border-green-500'
+                                                        : 'bg-white border-gray-300'
+                                                }`}>
+                                                    {selectedForExport.has(school.outCodEscola) && (
+                                                        <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
                                                             <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                                                         </svg>
-                                                    </div>
+                                                    )}
                                                 </div>
-                                            )}
-                                            
-                                            <div className="flex items-start">
+                                            </div>
+
+                                            <div className="flex items-start pr-6">
                                                 <div className="flex-shrink-0">
                                                     <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
                                                         <span className="text-2xl">🏫</span>
                                                     </div>
                                                 </div>
                                                 <div className="ml-4 flex-1">
-                                                    <h3 className="text-lg font-medium text-gray-900 mb-1">
+                                                    <h3 className="text-base font-semibold text-gray-900 mb-1">
                                                         {school.outDescNomeEscola || 'Nome não disponível'}
                                                     </h3>
-                                                    <p className="text-sm text-gray-500 mb-2">
+                                                    <p className="text-sm text-gray-500 mb-1">
                                                         Código: {school.outCodEscola || 'N/A'}
                                                     </p>
                                                     {school.outUnidades && school.outUnidades[0] && (
@@ -281,14 +351,32 @@ export default function SchoolsIndex({ schools, selectedSchool, connectionStatus
                                                     )}
                                                 </div>
                                             </div>
-                                            
-                                            <div className="mt-4 flex items-center justify-between">
-                                                <div className="flex items-center text-xs text-gray-500">
-                                                    <span className="text-gray-400">Escola Municipal</span>
-                                                </div>
-                                                <div className="text-indigo-600 text-sm font-medium">
-                                                    {loading ? 'Selecionando...' : 'Selecionar →'}
-                                                </div>
+
+                                            <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
+                                                <span className="text-xs text-gray-400">Escola Municipal</span>
+                                                <button
+                                                    type="button"
+                                                    disabled={loadingSchool !== null}
+                                                    onClick={(e) => { e.stopPropagation(); handleSelectSchool(school); }}
+                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                                >
+                                                    {loadingSchool === school.outCodEscola ? (
+                                                        <>
+                                                            <svg className="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
+                                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                                            </svg>
+                                                            Abrindo...
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                                            </svg>
+                                                            Abrir escola
+                                                        </>
+                                                    )}
+                                                </button>
                                             </div>
                                         </div>
                                     ))}
