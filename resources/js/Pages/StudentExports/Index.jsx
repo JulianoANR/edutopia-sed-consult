@@ -1,6 +1,6 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, router } from '@inertiajs/react';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import axios from 'axios';
 import { formatStudentExportStatusPt } from '@/utils/studentExportStatus';
 import ExportFieldsModal from '@/Components/ExportFieldsModal';
@@ -13,9 +13,6 @@ function formatSchools(schoolCodes) {
 }
 
 export default function StudentExportsIndex({ requests, active, latest_done, has_latest_file }) {
-    const [polling, setPolling] = useState(false);
-    const [currentActive, setCurrentActive] = useState(active);
-    const [currentHasLatestFile, setCurrentHasLatestFile] = useState(has_latest_file);
     const [schoolsModal, setSchoolsModal] = useState(null);
     const [fieldsModal, setFieldsModal] = useState(null); // { id, selected_fields }
     const [reloading, setReloading] = useState(false);
@@ -23,43 +20,10 @@ export default function StudentExportsIndex({ requests, active, latest_done, has
     const [cancelModal, setCancelModal] = useState(null); // { row }
     const [uiModal, setUiModal] = useState(null); // { title, body }
 
-    useEffect(() => {
-        setCurrentActive(active);
-        setCurrentHasLatestFile(has_latest_file);
-    }, [active, has_latest_file]);
-
     const latestStatusText = useMemo(() => {
-        if (!currentActive?.status) return '—';
-        return formatStudentExportStatusPt(currentActive.status);
-    }, [currentActive]);
-
-    useEffect(() => {
-        let timer = null;
-
-        async function tick() {
-            try {
-                setPolling(true);
-                const res = await axios.get('/student-exports/status');
-                if (res.data?.success) {
-                    setCurrentActive(res.data.active);
-                    setCurrentHasLatestFile(!!res.data.has_latest_file);
-                }
-            } catch (e) {
-                // silencioso: a página ainda mostra o último estado conhecido
-            } finally {
-                setPolling(false);
-            }
-        }
-
-        if (currentActive) {
-            tick();
-            timer = setInterval(tick, 5000);
-        }
-
-        return () => {
-            if (timer) clearInterval(timer);
-        };
-    }, [currentActive]);
+        if (!active?.status) return '—';
+        return formatStudentExportStatusPt(active.status);
+    }, [active]);
 
     const handleReloadStatus = () => {
         router.reload({
@@ -124,10 +88,10 @@ export default function StudentExportsIndex({ requests, active, latest_done, has
                         <a
                             href="/student-exports/download-latest"
                             className={`inline-flex items-center px-3 py-2 text-sm font-medium rounded-md text-white ${
-                                currentHasLatestFile ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-300 cursor-not-allowed'
+                                has_latest_file ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-300 cursor-not-allowed'
                             }`}
                             onClick={(e) => {
-                                if (!currentHasLatestFile) e.preventDefault();
+                                if (!has_latest_file) e.preventDefault();
                             }}
                         >
                             Baixar último CSV
@@ -164,34 +128,32 @@ export default function StudentExportsIndex({ requests, active, latest_done, has
                                 </button>
                             </div>
                             <p className="mt-1 text-sm text-gray-600">
-                                As exportações são processadas em segundo plano. Apenas o último arquivo fica disponível para download.
+                                As exportações são processadas em segundo plano. Apenas o último arquivo fica disponível para download. Use{' '}
+                                <span className="font-medium text-gray-800">Recarregar</span> para atualizar status, histórico e disponibilidade do CSV.
                             </p>
 
                             <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div className="rounded-lg border border-gray-200 p-4">
                                     <div className="text-xs text-gray-500">Exportação em andamento</div>
                                     <div className="mt-1 text-sm font-medium text-gray-900">
-                                        {currentActive ? latestStatusText : 'Nenhuma'}
+                                        {active ? latestStatusText : 'Nenhuma'}
                                     </div>
-                                    {currentActive && (
+                                    {active && (
                                         <div className="mt-2 text-xs text-gray-600 space-y-1">
-                                            <div><span className="text-gray-500">Ano:</span> {currentActive.ano_letivo}</div>
-                                            <div><span className="text-gray-500">Escolas:</span> {formatSchools(currentActive.school_codes)}</div>
-                                            <div><span className="text-gray-500">Progresso:</span> {currentActive.progress_current ?? 0} alunos</div>
-                                            {currentActive.error_message && (
-                                                <div className="text-red-700">{currentActive.error_message}</div>
+                                            <div><span className="text-gray-500">Ano:</span> {active.ano_letivo}</div>
+                                            <div><span className="text-gray-500">Escolas:</span> {formatSchools(active.school_codes)}</div>
+                                            <div><span className="text-gray-500">Progresso:</span> {active.progress_current ?? 0} alunos</div>
+                                            {active.error_message && (
+                                                <div className="text-red-700">{active.error_message}</div>
                                             )}
                                         </div>
-                                    )}
-                                    {polling && currentActive && (
-                                        <div className="mt-2 text-xs text-gray-400">Atualizando…</div>
                                     )}
                                 </div>
 
                                 <div className="rounded-lg border border-gray-200 p-4">
                                     <div className="text-xs text-gray-500">Último arquivo</div>
                                     <div className="mt-1 text-sm font-medium text-gray-900">
-                                        {currentHasLatestFile ? 'Disponível' : 'Ainda não disponível'}
+                                        {has_latest_file ? 'Disponível' : 'Ainda não disponível'}
                                     </div>
                                     <div className="mt-2 text-xs text-gray-600">
                                         {latest_done?.created_at ? `Gerado em ${latest_done.created_at}` : '—'}
