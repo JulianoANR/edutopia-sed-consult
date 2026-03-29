@@ -17,9 +17,10 @@ class ExportSchoolStudentsJob implements ShouldQueue
     use Queueable;
 
     /**
-     * Tempo máximo de execução: 2 horas (para escolas com muitos alunos)
+     * Tempo máximo de execução: 8 horas (exportações grandes / muitas escolas).
+     * O worker deve usar --timeout >= este valor (ex.: php artisan queue:work --timeout=28800).
      */
-    public int $timeout = 7200;
+    public int $timeout = 28800;
 
     /**
      * Sem retry automático para evitar reprocessamento de dados já parcialmente gerados
@@ -34,6 +35,15 @@ class ExportSchoolStudentsJob implements ShouldQueue
     public function handle(): void
     {
         $exportRequest = StudentExportRequest::findOrFail($this->exportRequestId);
+
+        // Se foi cancelada antes de iniciar, não processa.
+        if (($exportRequest->status ?? null) === 'cancelled') {
+            Log::warning('ExportSchoolStudentsJob: Cancelado antes de iniciar', [
+                'export_request_id' => $this->exportRequestId,
+                'user_id' => $this->userId,
+            ]);
+            return;
+        }
 
         $exportRequest->update(['status' => 'processing']);
 
@@ -55,38 +65,114 @@ class ExportSchoolStudentsJob implements ShouldQueue
         $allAdditionalData = [];
         $processedStudents = 0;
 
+        $schoolsTotal = count($exportRequest->school_codes);
+        $schoolIndex = 0;
+        $schoolsCompleted = 0;
+        $schoolsSkippedNoClasses = 0;
+        $schoolsFailedApi = 0;
+
+        Log::info('ExportSchoolStudentsJob: Plano da execução', [
+            'export_request_id' => $this->exportRequestId,
+            'tenant_id' => $exportRequest->tenant_id,
+            'ano_letivo' => $exportRequest->ano_letivo,
+            'total_escolas' => $schoolsTotal,
+            'codigos_escolas' => array_column($exportRequest->school_codes, 'code'),
+        ]);
+
         foreach ($exportRequest->school_codes as $schoolInfo) {
+            // Cancelamento cooperativo: se o usuário reiniciou, encerra o job cedo.
+            $exportRequest->refresh();
+            if (($exportRequest->status ?? null) === 'cancelled') {
+                Log::warning('ExportSchoolStudentsJob: Cancelado durante execução (antes da próxima escola)', [
+                    'export_request_id' => $this->exportRequestId,
+                    'progress_current' => $exportRequest->progress_current,
+                ]);
+                return;
+            }
+
+            $schoolIndex++;
             $codEscola = $schoolInfo['code'];
             $nomeEscola = $schoolInfo['name'];
 
-            Log::info('ExportSchoolStudentsJob: Processando escola', [
+            Log::info('ExportSchoolStudentsJob: Início escola', [
+                'export_request_id' => $this->exportRequestId,
+                'escola' => "{$schoolIndex}/{$schoolsTotal}",
                 'cod_escola' => $codEscola,
                 'nome_escola' => $nomeEscola,
+                'alunos_acumulados_ate_agora' => $processedStudents,
             ]);
+
+            $studentsBeforeSchool = $processedStudents;
+            $classesProcessed = 0;
+            $classesFailed = 0;
+            $skippedNoRa = 0;
+            $profileErrors = 0;
 
             try {
                 $classesResult = $turmasService->getRelacaoClasses($exportRequest->ano_letivo, $codEscola);
                 $classes = $classesResult['outClasses'] ?? [];
+                $classesTotal = count($classes);
 
                 if (empty($classes)) {
-                    Log::warning('ExportSchoolStudentsJob: Nenhuma turma encontrada', ['cod_escola' => $codEscola]);
+                    Log::warning('ExportSchoolStudentsJob: Escola sem turmas no ano letivo (pulando)', [
+                        'export_request_id' => $this->exportRequestId,
+                        'escola' => "{$schoolIndex}/{$schoolsTotal}",
+                        'cod_escola' => $codEscola,
+                        'ano_letivo' => $exportRequest->ano_letivo,
+                    ]);
+                    $schoolsSkippedNoClasses++;
                     continue;
                 }
 
+                Log::info('ExportSchoolStudentsJob: Turmas encontradas para a escola', [
+                    'export_request_id' => $this->exportRequestId,
+                    'escola' => "{$schoolIndex}/{$schoolsTotal}",
+                    'cod_escola' => $codEscola,
+                    'total_turmas' => $classesTotal,
+                ]);
+
+                $classIndex = 0;
                 foreach ($classes as $class) {
+                    $exportRequest->refresh();
+                    if (($exportRequest->status ?? null) === 'cancelled') {
+                        Log::warning('ExportSchoolStudentsJob: Cancelado durante execução (antes da próxima turma)', [
+                            'export_request_id' => $this->exportRequestId,
+                            'cod_escola' => $codEscola,
+                            'progress_current' => $exportRequest->progress_current,
+                        ]);
+                        return;
+                    }
+
+                    $classIndex++;
                     $codTurma = $class['outNumClasse'];
                     $nomeTurma = $class['nome_turma'] ?? $codTurma;
+                    $addedThisClass = 0;
 
                     try {
                         $turmaData = $turmasService->consultarTurma($codTurma);
                         $students = $turmaData['outAlunos'] ?? [];
+                        $studentsListed = count($students);
 
                         foreach ($students as $student) {
+                            if ($processedStudents % 25 === 0) {
+                                $exportRequest->refresh();
+                                if (($exportRequest->status ?? null) === 'cancelled') {
+                                    Log::warning('ExportSchoolStudentsJob: Cancelado durante execução (durante alunos)', [
+                                        'export_request_id' => $this->exportRequestId,
+                                        'cod_escola' => $codEscola,
+                                        'cod_turma' => $codTurma,
+                                        'progress_current' => $exportRequest->progress_current,
+                                    ]);
+                                    return;
+                                }
+                            }
+
                             $numRA    = $student['outNumRA'] ?? null;
                             $digitoRA = $student['outDigitoRA'] ?? null;
                             $ufRA     = $student['outSiglaUFRA'] ?? 'SP';
 
                             if (!$numRA) {
+                                $skippedNoRa++;
                                 continue;
                             }
 
@@ -113,6 +199,7 @@ class ExportSchoolStudentsJob implements ShouldQueue
                                 ];
 
                                 $processedStudents++;
+                                $addedThisClass++;
 
                                 // Atualizar progresso a cada 10 alunos para não sobrecarregar o banco
                                 if ($processedStudents % 10 === 0) {
@@ -120,28 +207,82 @@ class ExportSchoolStudentsJob implements ShouldQueue
                                 }
 
                             } catch (\Exception $e) {
+                                $profileErrors++;
                                 Log::warning('ExportSchoolStudentsJob: Erro ao buscar perfil do aluno', [
+                                    'export_request_id' => $this->exportRequestId,
+                                    'escola' => "{$schoolIndex}/{$schoolsTotal}",
+                                    'cod_escola' => $codEscola,
+                                    'turma' => "{$classIndex}/{$classesTotal}",
+                                    'cod_turma' => $codTurma,
                                     'ra'    => $numRA . '-' . $digitoRA,
                                     'error' => $e->getMessage(),
                                 ]);
                             }
                         }
 
+                        $classesProcessed++;
+                        Log::info('ExportSchoolStudentsJob: Turma concluída', [
+                            'export_request_id' => $this->exportRequestId,
+                            'escola' => "{$schoolIndex}/{$schoolsTotal}",
+                            'cod_escola' => $codEscola,
+                            'turma' => "{$classIndex}/{$classesTotal}",
+                            'cod_turma' => $codTurma,
+                            'nome_turma' => $nomeTurma,
+                            'alunos_listados_sed' => $studentsListed,
+                            'perfis_exportados_ok' => $addedThisClass,
+                            'alunos_total_export' => $processedStudents,
+                        ]);
+
                     } catch (\Exception $e) {
+                        $classesFailed++;
                         Log::warning('ExportSchoolStudentsJob: Erro ao consultar turma', [
+                            'export_request_id' => $this->exportRequestId,
+                            'escola' => "{$schoolIndex}/{$schoolsTotal}",
+                            'cod_escola' => $codEscola,
+                            'turma' => "{$classIndex}/{$classesTotal}",
                             'cod_turma' => $codTurma,
                             'error'     => $e->getMessage(),
                         ]);
                     }
                 }
 
+                $schoolsCompleted++;
+                $studentsThisSchool = $processedStudents - $studentsBeforeSchool;
+
+                $exportRequest->update(['progress_current' => $processedStudents]);
+
+                Log::info('ExportSchoolStudentsJob: Fim escola', [
+                    'export_request_id' => $this->exportRequestId,
+                    'escola' => "{$schoolIndex}/{$schoolsTotal}",
+                    'cod_escola' => $codEscola,
+                    'nome_escola' => $nomeEscola,
+                    'turmas_ok' => $classesProcessed,
+                    'turmas_falha' => $classesFailed,
+                    'alunos_novos_nesta_escola' => $studentsThisSchool,
+                    'alunos_total_export' => $processedStudents,
+                    'alunos_sem_ra_ignorados' => $skippedNoRa,
+                    'falhas_perfil_aluno' => $profileErrors,
+                ]);
+
             } catch (\Exception $e) {
+                $schoolsFailedApi++;
                 Log::error('ExportSchoolStudentsJob: Erro ao buscar turmas da escola', [
+                    'export_request_id' => $this->exportRequestId,
+                    'escola' => "{$schoolIndex}/{$schoolsTotal}",
                     'cod_escola' => $codEscola,
                     'error'      => $e->getMessage(),
                 ]);
             }
         }
+
+        Log::info('ExportSchoolStudentsJob: Resumo após todas as escolas', [
+            'export_request_id' => $this->exportRequestId,
+            'total_escolas_planejadas' => $schoolsTotal,
+            'escolas_com_processamento_ok' => $schoolsCompleted,
+            'escolas_sem_turmas' => $schoolsSkippedNoClasses,
+            'escolas_com_erro_api_turmas' => $schoolsFailedApi,
+            'total_alunos_exportados' => $processedStudents,
+        ]);
 
         if (empty($allStudentsData)) {
             $exportRequest->update([
@@ -172,9 +313,8 @@ class ExportSchoolStudentsJob implements ShouldQueue
         $csvData = $export->exportCsv();
 
         $tenantId = $exportRequest->tenant_id;
-        $schoolCodes = implode('-', array_column($exportRequest->school_codes, 'code'));
-        $filename = "export_alunos_{$schoolCodes}_{$exportRequest->ano_letivo}_" . now()->format('Ymd_His') . '.csv';
-        $path = "exports/{$tenantId}/{$filename}";
+        // Sempre sobrescreve o último arquivo para o tenant (o histórico mantém apenas registros)
+        $path = "exports/{$tenantId}/alunos_export_latest.csv";
 
         $handle = fopen('php://temp', 'r+');
         fprintf($handle, chr(0xEF) . chr(0xBB) . chr(0xBF)); // BOM UTF-8
@@ -185,6 +325,9 @@ class ExportSchoolStudentsJob implements ShouldQueue
         $content = stream_get_contents($handle);
         fclose($handle);
 
+        if (Storage::exists($path)) {
+            Storage::delete($path);
+        }
         Storage::put($path, $content);
 
         return $path;

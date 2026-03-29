@@ -6,6 +6,7 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SchoolController;
 use App\Http\Controllers\SedApiController;
 use App\Http\Controllers\StudentController;
+use App\Http\Controllers\StudentExportRequestController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -85,6 +86,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // Caso contrário, direciona para escolas
         return redirect()->route('schools.index');
     })->name('dashboard');
+
+    // ----------------------------------------------------------------------------
+    // EXPORTAÇÕES DE ALUNOS (fila assíncrona) — rota dedicada
+    // ----------------------------------------------------------------------------
+    Route::prefix('student-exports')->name('student-exports.')->group(function () {
+        Route::get('/', [StudentExportRequestController::class, 'index'])->name('index');
+        Route::post('/start', [StudentExportRequestController::class, 'start'])->name('start');
+        Route::post('/{studentExportRequest}/cancel', [StudentExportRequestController::class, 'cancel'])->name('cancel');
+        Route::get('/status', [StudentExportRequestController::class, 'status'])->name('status');
+        Route::get('/download-latest', [StudentExportRequestController::class, 'downloadLatest'])->name('download-latest');
+    });
+
+    Route::redirect('/schools/exports', '/student-exports');
 
     // ----------------------------------------------------------------------------
     // SCHOOL ROUTES

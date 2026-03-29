@@ -1,8 +1,10 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
 import { router } from '@inertiajs/react';
 import axios from 'axios';
+import { getDefaultFields } from '@/config/export-fields.js';
+import ExportFieldsModal from '@/Components/ExportFieldsModal';
 
 export default function SchoolsIndex({ schools, selectedSchool, connectionStatus, redeEnsinoId }) {
     const [loadingSchool, setLoadingSchool] = useState(null);
@@ -13,6 +15,10 @@ export default function SchoolsIndex({ schools, selectedSchool, connectionStatus
     const [selectedRedeEnsino, setSelectedRedeEnsino] = useState(redeEnsinoId || 2);
     const [loadingRedeEnsino, setLoadingRedeEnsino] = useState(false);
     const [selectedForExport, setSelectedForExport] = useState(new Set());
+    const [exportModal, setExportModal] = useState(null);
+    const [exportSubmitting, setExportSubmitting] = useState(false);
+    const [showFieldsModal, setShowFieldsModal] = useState(false);
+    const [selectedFields, setSelectedFields] = useState(() => getDefaultFields().map(f => f.key));
 
     const redesEnsino = [
         { value: 1, label: 'Estadual', icon: '🏛️' },
@@ -84,6 +90,99 @@ export default function SchoolsIndex({ schools, selectedSchool, connectionStatus
             }
             return next;
         });
+    };
+
+    const goToStudentExports = () => {
+        setExportModal(null);
+        router.visit(route('student-exports.index'));
+    };
+
+    const buildExportPayload = () => {
+        const schools = filteredSchools
+            .filter(s => selectedForExport.has(s.outCodEscola))
+            .map(s => ({
+                code: String(s.outCodEscola),
+                name: s.outDescNomeEscola || String(s.outCodEscola),
+            }));
+        return {
+            ano_letivo: new Date().getFullYear().toString(),
+            schools,
+            selected_fields: selectedFields,
+        };
+    };
+
+    const handleStartAsyncExport = async () => {
+        if (selectedForExport.size === 0) {
+            return;
+        }
+
+        setShowFieldsModal(true);
+    };
+
+    const confirmStartAsyncExport = async () => {
+        if (selectedForExport.size === 0) return;
+        if (!Array.isArray(selectedFields) || selectedFields.length === 0) return;
+
+        const payload = buildExportPayload();
+        setExportSubmitting(true);
+        try {
+            await axios.post(route('student-exports.start'), payload);
+
+            setExportModal({
+                kind: 'started',
+                title: 'Exportação iniciada',
+                body: 'O processamento pode levar vários minutos. Clique em OK para abrir a tela de exportações e acompanhar o andamento.',
+            });
+            setShowFieldsModal(false);
+        } catch (error) {
+            if (error.response?.status === 409) {
+                setExportModal({
+                    kind: 'conflict',
+                    title: 'Exportação em andamento',
+                    body:
+                        error.response?.data?.message ||
+                        'Já existe uma exportação em andamento. Se continuar, a exportação atual será cancelada e uma nova será iniciada.',
+                    pendingPayload: payload,
+                });
+                setShowFieldsModal(false);
+            } else if (error.response?.status !== 419) {
+                setExportModal({
+                    kind: 'error',
+                    title: 'Não foi possível iniciar',
+                    body: error.response?.data?.message || error.message || 'Erro desconhecido.',
+                });
+            }
+        } finally {
+            setExportSubmitting(false);
+        }
+    };
+
+    const handleForceReplaceExport = async () => {
+        if (exportModal?.kind !== 'conflict' || !exportModal.pendingPayload) {
+            return;
+        }
+        setExportSubmitting(true);
+        try {
+            await axios.post(route('student-exports.start'), {
+                ...exportModal.pendingPayload,
+                force: true,
+            });
+            setExportModal({
+                kind: 'started',
+                title: 'Nova exportação iniciada',
+                body: 'A exportação anterior foi cancelada. Clique em OK para abrir a tela de exportações.',
+            });
+        } catch (forceErr) {
+            if (forceErr.response?.status !== 419) {
+                setExportModal({
+                    kind: 'error',
+                    title: 'Erro ao substituir exportação',
+                    body: forceErr.response?.data?.message || forceErr.message || 'Erro desconhecido.',
+                });
+            }
+        } finally {
+            setExportSubmitting(false);
+        }
     };
 
     const handleRedeEnsinoChange = (value) => {
@@ -230,20 +329,44 @@ export default function SchoolsIndex({ schools, selectedSchool, connectionStatus
                                 className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                             />
                         </div>
-                        <button
-                            type="button"
-                            disabled={selectedForExport.size === 0}
-                            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors ${
-                                selectedForExport.size > 0
-                                    ? 'bg-green-600 text-white hover:bg-green-700 cursor-pointer'
-                                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                            }`}
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                            </svg>
-                            Exportar Alunos{selectedForExport.size > 0 && ` (${selectedForExport.size})`}
-                        </button>
+                        <div className="flex flex-wrap items-center gap-2 shrink-0">
+                            <Link
+                                href={route('student-exports.index')}
+                                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md border border-gray-300 bg-white text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                </svg>
+                                Ver exportações
+                            </Link>
+                            <button
+                                type="button"
+                                disabled={selectedForExport.size === 0 || exportSubmitting}
+                                onClick={handleStartAsyncExport}
+                                className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors ${
+                                    selectedForExport.size > 0 && !exportSubmitting
+                                        ? 'bg-green-600 text-white hover:bg-green-700 cursor-pointer'
+                                        : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                }`}
+                            >
+                                {exportSubmitting ? (
+                                    <>
+                                        <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                        </svg>
+                                        Enviando…
+                                    </>
+                                ) : (
+                                    <>
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                        </svg>
+                                        Exportar Alunos{selectedForExport.size > 0 && ` (${selectedForExport.size})`}
+                                    </>
+                                )}
+                            </button>
+                        </div>
                     </div>
 
                     {/* Lista de Escolas */}
@@ -386,6 +509,81 @@ export default function SchoolsIndex({ schools, selectedSchool, connectionStatus
                     </div>
                 </div>
             </div>
+            <ExportFieldsModal
+                open={showFieldsModal}
+                title="Selecionar campos para exportação"
+                subtitle={`Você selecionou ${selectedForExport.size} escola${selectedForExport.size === 1 ? '' : 's'}. Agora escolha quais campos deseja incluir no CSV.`}
+                selectedFields={selectedFields}
+                onSelectedFieldsChange={setSelectedFields}
+                onClose={() => setShowFieldsModal(false)}
+                onConfirm={confirmStartAsyncExport}
+                confirmLabel={exportSubmitting ? 'Enviando…' : 'Iniciar exportação'}
+                readOnly={false}
+            />
+            {exportModal && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="export-modal-title"
+                >
+                    <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+                        <h3 id="export-modal-title" className="text-lg font-semibold text-gray-900">
+                            {exportModal.title || 'Atenção'}
+                        </h3>
+                        <p className="mt-2 text-sm text-gray-600 whitespace-pre-line">{exportModal.body}</p>
+
+                        <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                            {exportModal.kind === 'conflict' && (
+                                <>
+                                    <button
+                                        type="button"
+                                        onClick={() => setExportModal(null)}
+                                        className="w-full inline-flex items-center justify-center min-h-10 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 text-center whitespace-normal"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={goToStudentExports}
+                                        className="w-full inline-flex items-center justify-center min-h-10 px-4 py-2 text-sm font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-md hover:bg-indigo-100 text-center whitespace-normal"
+                                    >
+                                        Ir para exportações
+                                    </button>
+                                    <button
+                                        type="button"
+                                        disabled={exportSubmitting}
+                                        onClick={handleForceReplaceExport}
+                                        className="w-full inline-flex items-center justify-center min-h-10 px-4 py-2 text-sm font-medium text-white bg-amber-600 border border-transparent rounded-md hover:bg-amber-700 disabled:opacity-50 text-center whitespace-normal"
+                                    >
+                                        {exportSubmitting ? 'Substituindo…' : 'Continuar e substituir'}
+                                    </button>
+                                </>
+                            )}
+
+                            {exportModal.kind === 'started' && (
+                                <button
+                                    type="button"
+                                    onClick={goToStudentExports}
+                                    className="sm:col-span-3 w-full inline-flex items-center justify-center min-h-10 px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700"
+                                >
+                                    OK
+                                </button>
+                            )}
+
+                            {exportModal.kind === 'error' && (
+                                <button
+                                    type="button"
+                                    onClick={() => setExportModal(null)}
+                                    className="sm:col-span-3 w-full inline-flex items-center justify-center min-h-10 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                                >
+                                    Fechar
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </AuthenticatedLayout>
     );
 }
