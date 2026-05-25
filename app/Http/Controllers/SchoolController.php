@@ -512,6 +512,7 @@ class SchoolController extends Controller
                     // Adicionar dados contextuais
                     $additionalData[] = [
                         'turma' => $nomeTurma,
+                        'cod_turma' => $codTurma,
                         'escola' => $nomeEscola,
                         'codigo_escola' => $codEscola,
                         'data_inicio_matricula' => $student['outDataInicioMatricula'] ?? '',
@@ -747,6 +748,7 @@ class SchoolController extends Controller
                             // Adicionar dados contextuais
                             $additionalData[] = [
                                 'turma' => $nomeTurma,
+                                'cod_turma' => $codTurma,
                                 'escola' => $nomeEscola,
                                 'codigo_escola' => $codEscola,
                                 'data_inicio_matricula' => $student['outDataInicioMatricula'] ?? '',

@@ -186,6 +186,7 @@ class ExportSchoolStudentsJob implements ShouldQueue
                                 $allStudentsData[]    = $studentDetails;
                                 $allAdditionalData[]  = [
                                     'turma'                 => $nomeTurma,
+                                    'cod_turma'             => $codTurma,
                                     'escola'                => $nomeEscola,
                                     'codigo_escola'         => $codEscola,
                                     'turno'                 => $turmaData['outDescricaoTurno'] ?? '',

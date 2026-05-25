@@ -176,6 +176,14 @@ export const EXPORT_FIELDS = [
         category: EXPORT_FIELD_CATEGORIES.ACADEMIC
     },
     {
+        key: 'cod_turma',
+        label: 'Código Turma SED',
+        path: 'additionalData.cod_turma',
+        type: 'string',
+        default: true,
+        category: EXPORT_FIELD_CATEGORIES.ACADEMIC
+    },
+    {
         key: 'turno',
         label: 'Turno',
         path: 'additionalData.turno',

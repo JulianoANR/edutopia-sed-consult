@@ -111,9 +111,13 @@ class ClassController extends Controller
                 Log::error('Nenhum dado completo de aluno foi obtido');
                 return response()->json(['error' => 'Não foi possível obter dados completos dos alunos'], 400);
             }
+
+            $additionalData = array_fill(0, count($completeStudentsData), [
+                'cod_turma' => (string) $classCode,
+            ]);
             
-            // Criar o arquivo CSV
-            $export = new StudentsExport($completeStudentsData);
+            // Criar o arquivo CSV (modo simplificado + código da turma SED)
+            $export = new StudentsExport($completeStudentsData, $additionalData, true);
             $csvData = $export->exportCsv();
             
             $fileName = "alunos_turma_{$classCode}.csv";

@@ -26,6 +26,7 @@ class StudentExportMapper
             'Nome da Mãe',
             'Nome do Pai',
             'Turma',
+            'Código Turma SED',
             'Turno',
             'Tipo Ensino',
             'Código Tipo Ensino',
@@ -95,6 +96,9 @@ class StudentExportMapper
             
             // Turma (vem dos dados adicionais)
             $additionalData['turma'] ?? '',
+
+            // Código da turma no SED (outNumClasse / inNumClasse)
+            $additionalData['cod_turma'] ?? '',
 
             // Turno (vem dos dados adicionais)
             $additionalData['turno'] ?? '',
@@ -287,7 +291,8 @@ class StudentExportMapper
             'Sexo',
             'Cor/Raça',
             'Nome da Mãe',
-            'Nome do Pai'
+            'Nome do Pai',
+            'Código Turma SED',
         ];
     }
 
@@ -309,7 +314,8 @@ class StudentExportMapper
             $dadosPessoais['outSexo'] ?? '',
             $dadosPessoais['outDescCorRaca'] ?? '',
             $dadosPessoais['outNomeMae'] ?? '',
-            $dadosPessoais['outNomePai'] ?? ''
+            $dadosPessoais['outNomePai'] ?? '',
+            $additionalData['cod_turma'] ?? '',
         ];
     }
 }

@@ -202,6 +202,13 @@ class StudentsExport
                 'default' => false,
                 'category' => 'ACADEMIC'
             ],
+            'cod_turma' => [
+                'label' => 'Código Turma SED',
+                'path' => 'additionalData.cod_turma',
+                'type' => 'string',
+                'default' => true,
+                'category' => 'ACADEMIC'
+            ],
             'turno' => [
                 'label' => 'Turno',
                 'path' => 'additionalData.turno',
